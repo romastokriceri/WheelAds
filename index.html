@@ -7,7 +7,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root { 
+    :root {
       --bg: #ffffff;
       --bg2: #f7f7f5;
       --bg3: #f0efeb;
@@ -174,17 +174,7 @@
     .tread-mid  { background: #c07810; }
     .tread-low  { background: #d94040; }
 
-    .status-badge {
-      display: inline-block;
-      font-size: 11px;
-      padding: 2px 9px;
-      border-radius: 999px;
-      margin-left: 6px;
-      vertical-align: middle;
-      font-weight: 400;
-    }
-    .status-avail { background: #eaf3de; color: #3a6d10; }
-    .status-wait  { background: #faeeda; color: #854f0b; }
+
 
     .wheel-right { text-align: right; flex-shrink: 0; }
     .wheel-price {
@@ -315,12 +305,7 @@ function seasonRu(s) {
   return s;
 }
 
-function statusInfo(s) {
-  if (!s) return null;
-  if (s === 'Доступно') return { label: 'Доступно', cls: 'status-avail' };
-  if (s.includes('очi') || s.includes('очі')) return { label: 'В ожидании', cls: 'status-wait' };
-  return null;
-}
+
 
 function makeAnchor(size) {
   return 'size-' + size.replace(/\//g, '-').replace(/ /g, '-');
@@ -435,14 +420,12 @@ async function loadAndRender() {
         const treadHtml = tc
           ? `<span class="tread-dot ${tc}"></span>${w.durch} мм<span class="dot-sep">·</span>`
           : '';
-        const st = statusInfo(w.status);
-        const stHtml = st ? `<span class="status-badge ${st.cls}">${st.label}</span>` : '';
         const name = [w.marke, w.modell].filter(Boolean).join(' ');
 
         item.innerHTML =
           `<span class="wheel-id">#${w.id}</span>` +
           `<div>
-            <div class="wheel-name">${name}${stHtml}</div>
+            <div class="wheel-name">${name}</div>
             <div class="wheel-meta">${treadHtml}${year} г.<span class="dot-sep">·</span>${seasonRu(w.saison)}</div>
           </div>` +
           `<div class="wheel-right">
