@@ -416,20 +416,11 @@ async function loadAndRender() {
         bySize[w.size].push(w);
       });
       const sizes = Object.keys(bySize).sort((a, b) => a.localeCompare(b));
-      const multiSize = sizes.length > 1;
 
       const list = document.createElement('div');
       list.className = 'wheel-list';
 
       sizes.forEach(sz => {
-        // Show full-size sub-label only when there are multiple sizes in this Zoll group
-        if (multiSize) {
-          const lbl = document.createElement('div');
-          lbl.className = 'size-sublabel';
-          lbl.textContent = sz;
-          list.appendChild(lbl);
-        }
-
         bySize[sz].forEach(w => {
           const item = document.createElement('div');
           item.className = 'wheel-item';
@@ -452,7 +443,7 @@ async function loadAndRender() {
             </div>` +
             `<div class="wheel-right">
               <span class="wheel-price">${w.preis}</span>
-              ${w.anzahl ? `<div class="wheel-set">${w.anzahl} шт. в сете</div>` : ''}
+              ${w.anzahl ? `<div class="wheel-set">${w.anzahl} шт. комплект</div>` : ''}
             </div>`;
 
           list.appendChild(item);
