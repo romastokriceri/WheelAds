@@ -370,10 +370,9 @@ async function loadAndRender() {
       byZoll[key].push(w);
     });
 
-    // Sort Zoll keys numerically
-    const zolls = Object.keys(byZoll).sort((a, b) =>
-      (parseInt(a) || 0) - (parseInt(b) || 0)
-    );
+    // Sort Zoll keys numerically (extract digits from any format like "18", "18 Zoll", "R18")
+    const zollNum = z => parseInt(String(z).replace(/[^\d]/g, '')) || 0;
+    const zolls = Object.keys(byZoll).sort((a, b) => zollNum(a) - zollNum(b));
 
     heroMeta.textContent = `${wheels.length} позиций · ${zolls.length} размеров`;
 
