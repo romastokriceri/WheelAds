@@ -1,518 +1,464 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Шины и диски — каталог</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Авто в Германии</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    :root {
-      --bg: #ffffff;
-      --bg2: #f7f7f5;
-      --bg3: #f0efeb;
-      --text: #1a1a18;
-      --text2: #6b6b67;
-      --text3: #a0a09c;
-      --border: rgba(0,0,0,0.10);
-      --border2: rgba(0,0,0,0.18);
-      --radius: 8px;
-      --radius-lg: 12px;
-    }
+  :root {
+    --accent: #F5C400;
+    --dark: #0e0e0e;
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text: #ffffff;
+    --text-muted: rgba(255,255,255,0.55);
+  }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
 
-    .container {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
+  .hero-bg {
+    position: fixed;
+    inset: 0;
+    background-image: url('bg.jpg');
+    background-size: cover;
+    background-position: center;
+    filter: blur(14px) brightness(0.22);
+    transform: scale(1.05);
+    z-index: 0;
+  }
 
-    .hero {
-      padding: 3rem 0 2rem;
-      border-bottom: 0.5px solid var(--border);
-      margin-bottom: 2rem;
-    }
-    .hero h1 {
-      font-size: 28px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 0.3rem;
-      letter-spacing: -0.02em;
-    }
-    .hero-sub { font-size: 15px; color: var(--text2); }
-    .hero-meta { font-size: 13px; color: var(--text3); margin-top: 8px; }
+  .page {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    padding: 40px 24px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
 
-    .sizes-label {
-      font-size: 11px;
-      color: var(--text3);
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-    .sizes-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 2.75rem;
-    }
-    .size-pill {
-      display: inline-block;
-      padding: 7px 16px;
-      border-radius: 999px;
-      border: 0.5px solid var(--border2);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.12s, border-color 0.12s;
-    }
-    .size-pill:hover {
-      background: var(--bg2);
-      border-color: rgba(0,0,0,0.3);
-    }
+  .avatar-wrap {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 0 30px rgba(245,196,0,0.25);
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+  }
 
-    .section {
-      margin-bottom: 3rem;
-      scroll-margin-top: 16px;
-    }
-    .section-header {
-      display: flex;
-      align-items: baseline;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 1rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 0.5px solid var(--border);
-    }
-    .section-title {
-      font-size: 20px;
-      font-weight: 500;
-      color: var(--text);
-      letter-spacing: -0.01em;
-    }
-    .section-count { font-size: 13px; color: var(--text3); }
-    .season-tag {
-      font-size: 11px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      border: 0.5px solid var(--border);
-      color: var(--text3);
-    }
+  .avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 
-    .wheel-list { display: flex; flex-direction: column; }
+  .title-img {
+    display: block;
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+    filter: invert(1);
+    margin-bottom: 8px;
+  }
 
-    /* Sub-label when multiple full sizes exist within one Zoll group */
-    .size-sublabel {
-      font-size: 12px;
-      color: var(--text3);
-      letter-spacing: 0.04em;
-      margin-top: 12px;
-      margin-bottom: 2px;
-      padding-bottom: 4px;
-      border-bottom: 0.5px dashed var(--border);
-    }
+  .tagline {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 8px;
+    line-height: 1.6;
+    max-width: 300px;
+  }
 
-    .wheel-item {
-      display: grid;
-      grid-template-columns: 56px 1fr auto;
-      align-items: center;
-      gap: 16px;
-      padding: 12px 0;
-      border-bottom: 0.5px solid var(--border);
-    }
-    .wheel-item:last-child { border-bottom: none; }
+  .city-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(245,196,0,0.12);
+    border: 1px solid rgba(245,196,0,0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 36px;
+  }
 
-    .wheel-id {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text2);
-      background: var(--bg2);
-      border-radius: var(--radius);
-      padding: 5px 8px;
-      text-align: center;
-      white-space: nowrap;
-    }
+  .city-badge svg { width: 12px; height: 12px; fill: var(--accent); }
 
-    .wheel-name {
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 3px;
-    }
-    .wheel-meta {
-      font-size: 13px;
-      color: var(--text2);
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-    .dot-sep { color: var(--text3); }
+  .links {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 
-    .tread-dot {
-      display: inline-block;
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      margin-right: 3px;
-      flex-shrink: 0;
-    }
-    .tread-good { background: #5a9020; }
-    .tread-mid  { background: #c07810; }
-    .tread-low  { background: #d94040; }
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 17px 22px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    backdrop-filter: blur(4px);
+  }
 
-    .wheel-right { text-align: right; flex-shrink: 0; }
-    .wheel-price {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--text);
-      display: block;
-    }
-    .wheel-set { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .btn:hover {
+    background: rgba(255,255,255,0.13);
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-2px);
+  }
 
-    .back-top {
-      display: inline-block;
-      margin-top: 0.75rem;
-      font-size: 13px;
-      color: var(--text3);
-      cursor: pointer;
-      border: none;
-      background: none;
-      padding: 0;
-      text-decoration: underline;
-      text-decoration-color: transparent;
-      transition: color 0.12s, text-decoration-color 0.12s;
-    }
-    .back-top:hover {
-      color: var(--text2);
-      text-decoration-color: var(--border2);
-    }
+  .btn:active { transform: translateY(0); }
 
-    .phone-cta {
-      margin: 1.75rem 0 2rem;
-      text-align: center;
-    }
-    .phone-cta-label {
-      display: block;
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text2);
-      margin-bottom: 12px;
-      letter-spacing: 0.01em;
-    }
-    .phone-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 16px 32px;
-      background: var(--text);
-      color: #fff;
-      font-size: 22px;
-      font-weight: 700;
-      text-decoration: none;
-      border-radius: 14px;
-      letter-spacing: 0.02em;
-      transition: background 0.15s, transform 0.1s;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.13);
-    }
-    .phone-link:hover {
-      background: #2d2d2b;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.18);
-    }
-    .phone-link:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.13);
-    }
-    .phone-icon { font-size: 20px; }
+  .btn-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
 
-    .footer {
-      border-top: 0.5px solid var(--border);
-      padding: 1.5rem 0 2.5rem;
-      margin-top: 2rem;
-      font-size: 13px;
-      color: var(--text3);
-    }
+  .btn-icon svg { width: 22px; height: 22px; }
 
-    .state-msg { font-size: 15px; color: var(--text2); padding: 3rem 0; }
-    .state-error { color: #d94040; }
+  .btn-tg  .btn-icon { background: rgba(36,161,222,0.2); }
+  .btn-wa  .btn-icon { background: rgba(37,211,102,0.2); }
+  .btn-cat .btn-icon { background: rgba(245,196,0,0.18); }
+  .btn-imp .btn-icon { background: rgba(255,255,255,0.08); }
 
-    @media (max-width: 600px) {
-      .hero { padding: 2rem 0 1.5rem; }
-      .hero h1 { font-size: 22px; }
-      .wheel-item { grid-template-columns: 46px 1fr auto; gap: 10px; }
-      .wheel-price { font-size: 14px; }
-    }
-  </style>
+  .btn-label { flex: 1; }
+
+  .btn-sub {
+    font-size: 11px; font-weight: 400;
+    color: var(--text-muted); margin-top: 2px; letter-spacing: 0;
+  }
+
+  .btn-arrow { color: var(--text-muted); font-size: 18px; }
+
+  .divider {
+    width: 100%; height: 1px;
+    background: var(--card-border);
+    margin: 24px 0 12px;
+  }
+
+  .footer {
+    margin-top: 40px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+
+  .footer-logo {
+    height: 16px; width: auto;
+    filter: invert(1); opacity: 0.3;
+  }
+
+  .footer-city {
+    font-size: 10px; color: rgba(255,255,255,0.2);
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  /* TIKTOK POPUP */
+  .tt-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 200;
+    align-items: flex-end; justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tt-overlay.open { display: flex; }
+  .tt-box {
+    background: #1c1c1e;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px 20px 16px 16px;
+    padding: 20px 20px 36px;
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.3s ease;
+  }
+  .tt-handle {
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px; margin: 0 auto 18px;
+  }
+  .tt-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .tt-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(10,132,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 22px;
+  }
+  .tt-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  .tt-sub { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.4; }
+  .tt-steps {
+    background: rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .tt-step { display: flex; align-items: center; gap: 12px; }
+  .tt-step + .tt-step {
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .tt-num {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .tt-num.n1 { background: rgba(255,159,10,0.2); color: #FF9F0A; }
+  .tt-num.n2 { background: rgba(48,209,88,0.2);  color: #30D158; }
+  .tt-step-text { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.45; flex: 1; }
+  .tt-step-text strong { color: #fff; font-weight: 600; }
+  .tt-dots {
+    width: 32px; height: 32px; background: rgba(255,159,10,0.15);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; gap: 3px; flex-shrink: 0;
+  }
+  .tt-dots span { width: 4px; height: 4px; border-radius: 50%; background: #FF9F0A; display: block; }
+  .tt-hint {
+    font-size: 11px; color: rgba(255,255,255,0.3);
+    text-align: center; margin: 10px 0 16px; letter-spacing: 0.2px;
+  }
+  .tt-btn {
+    width: 100%; padding: 14px;
+    background: #fff; color: #000;
+    border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: 'Montserrat', sans-serif;
+  }
+
+  /* IMPRESSUM MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 100;
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px 20px 0 0;
+    padding: 32px 28px 48px;
+    width: 100%; max-width: 480px;
+    max-height: 85vh; overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px; margin: 0 auto 28px;
+  }
+  .modal h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 2px;
+    margin-bottom: 20px; color: var(--accent);
+  }
+  .modal-section { margin-bottom: 18px; }
+  .modal-section h3 {
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 6px;
+  }
+  .modal-section p { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.8); }
+  .modal-close {
+    float: right; background: none; border: none;
+    color: var(--text-muted); font-size: 24px;
+    cursor: pointer; line-height: 1; padding: 0;
+  }
+  .modal-close:hover { color: #fff; }
+</style>
 </head>
 <body>
-<div class="container">
 
-  <div class="hero">
-    <h1>Шины и диски</h1>
-    <p class="hero-sub">Выберите размер — найдите нужное колесо</p>
-    <p class="hero-meta" id="hero-meta">Загружаем данные…</p>
+<div class="hero-bg"></div>
+
+<div class="page">
+
+  <div class="avatar-wrap">
+    <img src="logo_icon.svg" alt="NAZCAR">
   </div>
 
-  <div class="phone-cta">
-    <span class="phone-cta-label">Нашли подходящее? Звоните!</span>
-    <a href="tel:+491622763205" class="phone-link">
-      <span class="phone-icon">📞</span>
-      Позвонить
+  <img src="Title_links.svg" alt="NAZCAR" class="title-img">
+
+  <p class="tagline">Авто в Германии</p>
+
+  <div class="city-badge">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+    57074 Siegen, Deutschland
+  </div>
+
+  <div class="links">
+
+    <a class="btn btn-tg" href="https://t.me/nazcar28" target="_blank" rel="noopener noreferrer">
+      <div class="btn-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M21.93 3.49L2.55 10.77c-1.3.5-1.29 1.2-.24 1.51l4.84 1.51 11.2-7.07c.53-.32 1.02-.15.62.2l-9.07 8.19h-.02l.34 5.09c.5 0 .72-.23 1-.5l2.4-2.33 5 3.69c.92.51 1.58.25 1.81-.85l3.27-15.4c.34-1.34-.51-1.95-1.72-1.31z" fill="#24A1DE"/></svg>
+      </div>
+      <div class="btn-label">
+        Telegram канал
+        <div class="btn-sub">Новинки, цены, актуальные авто</div>
+      </div>
+      <span class="btn-arrow">›</span>
     </a>
-  </div>
 
-  <div id="sizes-section" style="display:none">
-    <div class="sizes-label">Доступные размеры</div>
-    <div class="sizes-grid" id="sizes-grid"></div>
-  </div>
+    <a class="btn btn-wa" href="https://wa.me/491622763205" target="_blank" rel="noopener noreferrer">
+      <div class="btn-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M17.47 14.38c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.68-1.64-.93-2.24-.24-.59-.49-.51-.68-.52-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.79.37-.27.3-1.03 1.01-1.03 2.46s1.05 2.85 1.2 3.05c.15.2 2.07 3.16 5.01 4.43.7.3 1.25.48 1.67.61.7.22 1.34.19 1.84.12.56-.08 1.73-.71 1.97-1.39.24-.68.24-1.27.17-1.39-.07-.12-.27-.19-.57-.34z" fill="#25D366"/>
+          <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l5.08-1.34C8.48 21.52 10.21 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.71 0-3.3-.5-4.63-1.35l-.33-.2-3.02.8.81-2.96-.22-.35A7.96 7.96 0 014 12c0-4.42 3.58-8 8-8s8 3.58 8 8-3.58 8-8 8z" fill="#25D366"/>
+        </svg>
+      </div>
+      <div class="btn-label">
+        WhatsApp
+        <div class="btn-sub">Написать напрямую</div>
+      </div>
+      <span class="btn-arrow">›</span>
+    </a>
 
-  <div id="main-content"></div>
+    <a class="btn btn-cat" href="https://wheel-ads.vercel.app" target="_blank" rel="noopener noreferrer">
+      <div class="btn-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F5C400" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="3"/>
+          <line x1="12" y1="3" x2="12" y2="9"/>
+          <line x1="12" y1="15" x2="12" y2="21"/>
+          <line x1="3" y1="12" x2="9" y2="12"/>
+          <line x1="15" y1="12" x2="21" y2="12"/>
+        </svg>
+      </div>
+      <div class="btn-label">
+        Каталог шин
+        <div class="btn-sub">Б/у резина и диски</div>
+      </div>
+      <span class="btn-arrow">›</span>
+    </a>
+
+    <div class="divider"></div>
+
+    <button class="btn btn-imp" onclick="document.getElementById('impressum').classList.add('open')">
+      <div class="btn-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="btn-label">
+        Impressum / Datenschutz
+        <div class="btn-sub">Правовая информация</div>
+      </div>
+      <span class="btn-arrow">›</span>
+    </button>
+
+  </div>
 
   <div class="footer">
-    Данные обновляются автоматически из таблицы.
-    Чтобы связаться с продавцом — укажите ID лота.
+    <img src="Title_links.svg" alt="NAZCAR" class="footer-logo">
+    <span class="footer-city">Siegen, Deutschland</span>
   </div>
 
 </div>
 
+<!-- TIKTOK POPUP -->
+<div class="tt-overlay" id="tt-popup">
+  <div class="tt-box">
+    <div class="tt-handle"></div>
+    <div class="tt-head">
+      <div class="tt-icon">🌐</div>
+      <div>
+        <div class="tt-title">Откройте в браузере</div>
+        <div class="tt-sub">Сайт не работает во встроенном браузере TikTok</div>
+      </div>
+    </div>
+    <div class="tt-steps">
+      <div class="tt-step">
+        <div class="tt-num n1">1</div>
+        <div class="tt-step-text">Нажмите <strong>···</strong> в правом нижнем углу</div>
+        <div class="tt-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="tt-step">
+        <div class="tt-num n2">2</div>
+        <div class="tt-step-text">Выберите <strong>«Открыть в браузере»</strong></div>
+      </div>
+    </div>
+    <p class="tt-hint">или скопируйте ссылку и вставьте в Safari / Chrome</p>
+    <button class="tt-btn" onclick="document.getElementById('tt-popup').classList.remove('open')">Понятно</button>
+  </div>
+</div>
+
+<!-- IMPRESSUM MODAL -->
+<div class="modal-overlay" id="impressum" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="document.getElementById('impressum').classList.remove('open')">×</button>
+    <h2>Impressum</h2>
+    <div class="modal-section">
+      <h3>Angaben gemäß § 5 TMG</h3>
+      <p>NAZCAR<br>[Имя владельца / Inhaber]<br>[Straße, Hausnummer]<br>57074 Siegen, Deutschland</p>
+    </div>
+    <div class="modal-section">
+      <h3>Kontakt</h3>
+      <p>WhatsApp: +49 162 2763205<br>Telegram: @nazcar28</p>
+    </div>
+    <div class="modal-section">
+      <h3>Деятельность</h3>
+      <p>NAZCAR занимается подбором и продажей автомобилей на территории Германии, а также организацией доставки в другие страны. Мы предлагаем автомобили как из наличия, так и под индивидуальный заказ с учётом ваших пожеланий по марке, модели, бюджету и комплектации.</p>
+    </div>
+    <div class="modal-section">
+      <h3>Haftungshinweis</h3>
+      <p>Trotz sorgfältiger inhaltlicher Kontrolle übernehmen wir keine Haftung für die Inhalte externer Links. Für den Inhalt der verlinkten Seiten sind ausschließlich deren Betreiber verantwortlich.</p>
+    </div>
+    <div class="modal-section">
+      <h3>Datenschutz</h3>
+      <p>Diese Seite erhebt keine personenbezogenen Daten. Bei Kontaktaufnahme über WhatsApp oder Telegram gelten die Datenschutzrichtlinien der jeweiligen Plattform.</p>
+    </div>
+  </div>
+</div>
+
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNWYk70vz6RsWbSl_4yU4XO1NanPFl_MeIbDV6HtRRsRNGK0SHsbAyNoTDsgrSOiFetXgkU1e9GHy8/pub?gid=1467628040&single=true&output=csv";
-
-function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  return lines.map(line => {
-    const cells = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') { inQ = !inQ; }
-      else if (c === ',' && !inQ) { cells.push(cur.trim()); cur = ''; }
-      else { cur += c; }
+  (function(){
+    var ua = navigator.userAgent || '';
+    if(/musical_ly|TikTok|BytedanceWebview/i.test(ua)){
+      document.getElementById('tt-popup').classList.add('open');
     }
-    cells.push(cur.trim());
-    return cells;
-  });
-}
-
-function dotToYear(dot) {
-  if (!dot || dot === '0') return null;
-  const s = String(dot).replace(/\D/g, '');
-  let year = null;
-  if (s.length === 4) year = parseInt('20' + s.slice(2));
-  else if (s.length === 3) year = parseInt('200' + s.slice(2));
-  if (!year) return null;
-  return year >= 2019 ? String(year) : null;
-}
-
-function parseTread(val) {
-  if (!val || val === '#DIV/0!' || val === '') return null;
-  return parseFloat(val.replace(',', '.'));
-}
-
-function treadClass(v) {
-  if (v === null) return null;
-  if (v >= 7) return 'tread-good';
-  if (v >= 5) return 'tread-mid';
-  return 'tread-low';
-}
-
-function seasonRu(s) {
-  if (!s) return '';
-  const l = s.toLowerCase();
-  if (l === 'sommer') return 'Лето';
-  if (l === 'winter') return 'Зима';
-  if (l.includes('ganz') || l.includes('all')) return 'Всесезон';
-  return s;
-}
-
-// "195/60 R18" → "195/60"  (everything before the first space+R or just return as-is)
-function shortSize(size) {
-  const m = size.match(/^(.+?)\s+R\d/i);
-  return m ? m[1] : size;
-}
-
-// "18" or "18 Zoll" → "R18"
-function zollLabel(z) {
-  const n = String(z).replace(/[^\d]/g, '');
-  return n ? 'R' + n : z;
-}
-
-function makeAnchor(z) {
-  return 'r' + String(z).replace(/[^\d]/g, '');
-}
-
-async function loadAndRender() {
-  const content = document.getElementById('main-content');
-  const heroMeta = document.getElementById('hero-meta');
-
-  try {
-    const resp = await fetch(CSV_URL);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const text = await resp.text();
-    const rows = parseCSV(text);
-
-    let headerIdx = -1;
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i].some(c => c === 'Status')) { headerIdx = i; break; }
-    }
-    if (headerIdx === -1) throw new Error('Заголовок не найден');
-
-    const h = rows[headerIdx].map(c => c.trim());
-    const col = name => h.findIndex(c => c === name);
-
-    const iStatus = col('Status');
-    const iID     = col('ID');
-    const iMarke  = col('Marke');
-    const iModell = col('Modell');
-    const iGröße  = col('Größe');
-    const iZoll   = col('Zoll');
-    const iDot    = col('Dot');
-    const iSaison = col('Saison');
-    const iAnzahl = col('Anzahl im Set');
-    const iDurch  = col('Durchschnitt');
-    const iPreis  = col('Preis');
-
-    const wheels = [];
-    for (let i = headerIdx + 1; i < rows.length; i++) {
-      const r = rows[i];
-      if (!r || r.every(c => !c)) continue;
-      const status = (r[iStatus] || '').trim();
-      if (status === 'Продано') continue;
-      const id = (r[iID] || '').trim();
-      if (!id) continue;
-      wheels.push({
-        id,
-        marke:  (r[iMarke]  || '').trim(),
-        modell: (r[iModell] || '').trim(),
-        size:   (r[iGröße]  || '').trim(),
-        zoll:   (iZoll !== -1 ? r[iZoll] : '').trim(),
-        dot:    (r[iDot]    || '').trim(),
-        saison: (r[iSaison] || '').trim(),
-        anzahl: (r[iAnzahl] || '').trim(),
-        durch:  parseTread(r[iDurch] || ''),
-        preis:  (r[iPreis]  || '').trim(),
-      });
-    }
-
-    if (!wheels.length) {
-      heroMeta.textContent = 'Нет доступных позиций';
-      return;
-    }
-
-    // Group by Zoll
-    const byZoll = {};
-    wheels.forEach(w => {
-      const key = w.zoll || '?';
-      if (!byZoll[key]) byZoll[key] = [];
-      byZoll[key].push(w);
-    });
-
-    // Sort Zoll keys numerically (extract digits from any format like "18", "18 Zoll", "R18")
-    const zollNum = z => parseInt(String(z).replace(/[^\d]/g, '')) || 0;
-    const zolls = Object.keys(byZoll).sort((a, b) => zollNum(a) - zollNum(b));
-
-    heroMeta.textContent = `${wheels.length} позиций · ${zolls.length} размеров`;
-
-    // Pills
-    const sizesSection = document.getElementById('sizes-section');
-    sizesSection.style.display = 'block';
-    const sizesGrid = document.getElementById('sizes-grid');
-    zolls.forEach(z => {
-      const a = document.createElement('a');
-      a.className = 'size-pill';
-      a.textContent = zollLabel(z);
-      a.href = '#' + makeAnchor(z);
-      sizesGrid.appendChild(a);
-    });
-
-    // Sections
-    content.innerHTML = '';
-    zolls.forEach(z => {
-      const items = byZoll[z];
-      items.sort((a, b) => a.size.localeCompare(b.size));
-
-      const sec = document.createElement('div');
-      sec.className = 'section';
-      sec.id = makeAnchor(z);
-
-      // Header
-      const seasons = [...new Set(items.map(w => seasonRu(w.saison)).filter(Boolean))];
-      const hdr = document.createElement('div');
-      hdr.className = 'section-header';
-      hdr.innerHTML =
-        `<span class="section-title">${zollLabel(z)}</span>` +
-        `<span class="section-count">${items.length} шт.</span>` +
-        seasons.map(s => `<span class="season-tag">${s}</span>`).join('');
-      sec.appendChild(hdr);
-
-      // Sub-group by full Größe within the Zoll section
-      const bySize = {};
-      items.forEach(w => {
-        if (!bySize[w.size]) bySize[w.size] = [];
-        bySize[w.size].push(w);
-      });
-      const sizes = Object.keys(bySize).sort((a, b) => a.localeCompare(b));
-
-      const list = document.createElement('div');
-      list.className = 'wheel-list';
-
-      sizes.forEach(sz => {
-        bySize[sz].forEach(w => {
-          const item = document.createElement('div');
-          item.className = 'wheel-item';
-
-          const year = dotToYear(w.dot);
-          const tc = treadClass(w.durch);
-          const treadHtml = tc
-            ? `<span class="tread-dot ${tc}"></span>${w.durch} мм<span class="dot-sep">·</span>`
-            : '';
-          const name = [w.marke, w.modell].filter(Boolean).join(' ');
-          // Show only "195/60" part — Zoll is already in the section title
-          const displaySize = shortSize(w.size);
-          const yearHtml = year ? `${year} г.<span class="dot-sep">·</span>` : '';
-
-          item.innerHTML =
-            `<span class="wheel-id">#${w.id}</span>` +
-            `<div>
-              <div class="wheel-name">${name}</div>
-              <div class="wheel-meta">${displaySize}<span class="dot-sep">·</span>${treadHtml}${yearHtml}${seasonRu(w.saison)}</div>
-            </div>` +
-            `<div class="wheel-right">
-              <span class="wheel-price">${w.preis}</span>
-              ${w.anzahl ? `<div class="wheel-set">${w.anzahl} шт. комплект</div>` : ''}
-            </div>`;
-
-          list.appendChild(item);
-        });
-      });
-
-      sec.appendChild(list);
-
-      const back = document.createElement('button');
-      back.className = 'back-top';
-      back.textContent = '↑ К размерам';
-      back.onclick = () => document.querySelector('.hero').scrollIntoView({ behavior: 'smooth' });
-      sec.appendChild(back);
-
-      content.appendChild(sec);
-    });
-
-  } catch (e) {
-    heroMeta.textContent = '';
-    content.innerHTML = `<p class="state-msg state-error">Ошибка загрузки данных: ${e.message}</p>`;
-  }
-}
-
-loadAndRender();
+  })();
 </script>
+
 </body>
 </html>
