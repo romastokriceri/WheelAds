@@ -73,14 +73,19 @@
     object-fit: contain;
   }
 
-  .title-img {
-    display: block;
-    height: 38px;
-    width: auto;
-    object-fit: contain;
-    filter: invert(1);
-    margin-bottom: 8px;
-  }
+.title-img {
+  display: block;
+  height: 30px;
+  max-width: 78%;
+  width: auto;
+  object-fit: contain;
+
+  filter:
+    brightness(0)
+    invert(1);
+
+  margin-bottom: 8px;
+}
 
   .tagline {
     font-size: 11px;
