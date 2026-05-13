@@ -60,32 +60,26 @@
     overflow: hidden;
     margin-bottom: 20px;
     box-shadow: 0 0 30px rgba(245,196,0,0.25);
-    background: #111;
+    background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 14px;
   }
 
   .avatar-wrap img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 
-  .avatar-placeholder {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px;
-    color: var(--accent);
-    letter-spacing: 2px;
-  }
-
-  h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 38px;
-    letter-spacing: 3px;
-    color: #fff;
-    text-align: center;
-    margin-bottom: 6px;
+  .title-img {
+    display: block;
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+    filter: invert(1);
+    margin-bottom: 8px;
   }
 
   .tagline {
@@ -116,11 +110,7 @@
     margin-bottom: 36px;
   }
 
-  .city-badge svg {
-    width: 12px;
-    height: 12px;
-    fill: var(--accent);
-  }
+  .city-badge svg { width: 12px; height: 12px; fill: var(--accent); }
 
   .links {
     width: 100%;
@@ -155,141 +145,163 @@
     transform: translateY(-2px);
   }
 
-  .btn:active {
-    transform: translateY(0);
-  }
+  .btn:active { transform: translateY(0); }
 
   .btn-icon {
-    width: 40px;
-    height: 40px;
+    width: 40px; height: 40px;
     border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
 
-  .btn-icon svg {
-    width: 22px;
-    height: 22px;
-  }
+  .btn-icon svg { width: 22px; height: 22px; }
 
-  .btn-tg .btn-icon { background: rgba(36,161,222,0.2); }
-  .btn-wa .btn-icon { background: rgba(37,211,102,0.2); }
+  .btn-tg  .btn-icon { background: rgba(36,161,222,0.2); }
+  .btn-wa  .btn-icon { background: rgba(37,211,102,0.2); }
   .btn-cat .btn-icon { background: rgba(245,196,0,0.18); }
   .btn-imp .btn-icon { background: rgba(255,255,255,0.08); }
 
-  .btn-label {
-    flex: 1;
-  }
+  .btn-label { flex: 1; }
 
   .btn-sub {
-    font-size: 11px;
-    font-weight: 400;
-    color: var(--text-muted);
-    margin-top: 2px;
-    letter-spacing: 0;
+    font-size: 11px; font-weight: 400;
+    color: var(--text-muted); margin-top: 2px; letter-spacing: 0;
   }
 
-  .btn-arrow {
-    color: var(--text-muted);
-    font-size: 18px;
-  }
+  .btn-arrow { color: var(--text-muted); font-size: 18px; }
 
   .divider {
-    width: 100%;
-    height: 1px;
+    width: 100%; height: 1px;
     background: var(--card-border);
     margin: 24px 0 12px;
   }
 
   .footer {
     margin-top: 40px;
-    font-size: 11px;
-    color: rgba(255,255,255,0.2);
-    text-align: center;
-    letter-spacing: 1px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
   }
 
-  /* MODAL */
+  .footer-logo {
+    height: 16px; width: auto;
+    filter: invert(1); opacity: 0.3;
+  }
+
+  .footer-text {
+    font-size: 10px; color: rgba(255,255,255,0.2);
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  /* TIKTOK POPUP */
+  .tt-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 200;
+    align-items: flex-end; justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tt-overlay.open { display: flex; }
+  .tt-box {
+    background: #1c1c1e;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px 20px 16px 16px;
+    padding: 20px 20px 36px;
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.3s ease;
+  }
+  .tt-handle {
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px; margin: 0 auto 18px;
+  }
+  .tt-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .tt-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(10,132,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 22px;
+  }
+  .tt-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  .tt-sub { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.4; }
+  .tt-steps {
+    background: rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .tt-step { display: flex; align-items: center; gap: 12px; }
+  .tt-step + .tt-step {
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .tt-num {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .tt-num.n1 { background: rgba(255,159,10,0.2); color: #FF9F0A; }
+  .tt-num.n2 { background: rgba(48,209,88,0.2);  color: #30D158; }
+  .tt-step-text { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.45; flex: 1; }
+  .tt-step-text strong { color: #fff; font-weight: 600; }
+  .tt-dots {
+    width: 32px; height: 32px; background: rgba(255,159,10,0.15);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; gap: 3px; flex-shrink: 0;
+  }
+  .tt-dots span { width: 4px; height: 4px; border-radius: 50%; background: #FF9F0A; display: block; }
+  .tt-hint {
+    font-size: 11px; color: rgba(255,255,255,0.3);
+    text-align: center; margin: 10px 0 16px; letter-spacing: 0.2px;
+  }
+  .tt-btn {
+    width: 100%; padding: 14px;
+    background: #fff; color: #000;
+    border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: 'Montserrat', sans-serif;
+  }
+
+  /* IMPRESSUM MODAL */
   .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 100;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 0;
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 100;
+    align-items: flex-end; justify-content: center;
   }
-
-  .modal-overlay.open {
-    display: flex;
-  }
-
+  .modal-overlay.open { display: flex; }
   .modal {
     background: #1a1a1a;
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 20px 20px 0 0;
     padding: 32px 28px 48px;
-    width: 100%;
-    max-width: 480px;
-    max-height: 85vh;
-    overflow-y: auto;
+    width: 100%; max-width: 480px;
+    max-height: 85vh; overflow-y: auto;
     animation: slideUp 0.3s ease;
   }
-
   @keyframes slideUp {
     from { transform: translateY(40px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    to   { transform: translateY(0);    opacity: 1; }
   }
-
   .modal-handle {
-    width: 40px;
-    height: 4px;
+    width: 40px; height: 4px;
     background: rgba(255,255,255,0.15);
-    border-radius: 2px;
-    margin: 0 auto 28px;
+    border-radius: 2px; margin: 0 auto 28px;
   }
-
   .modal h2 {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 2px;
-    margin-bottom: 20px;
-    color: var(--accent);
+    font-size: 28px; letter-spacing: 2px;
+    margin-bottom: 20px; color: var(--accent);
   }
-
-  .modal-section {
-    margin-bottom: 18px;
-  }
-
+  .modal-section { margin-bottom: 18px; }
   .modal-section h3 {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 6px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 6px;
   }
-
-  .modal-section p {
-    font-size: 14px;
-    line-height: 1.7;
-    color: rgba(255,255,255,0.8);
-  }
-
+  .modal-section p { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.8); }
   .modal-close {
-    float: right;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 24px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
+    float: right; background: none; border: none;
+    color: var(--text-muted); font-size: 24px;
+    cursor: pointer; line-height: 1; padding: 0;
   }
-
   .modal-close:hover { color: #fff; }
 </style>
 </head>
@@ -300,11 +312,12 @@
 <div class="page">
 
   <div class="avatar-wrap">
-    <span class="avatar-placeholder"><img src="logo.svg" alt="Авто в Германии"></span>
+    <img src="logo_icon.svg" alt="NAZCAR">
   </div>
 
-  <h1>Авто в Германии</h1>
-  <p class="tagline">Авто в наличии и под заказ<br>Доставка в любую страну</p>
+  <img src="Title_links.svg" alt="NAZCAR" class="title-img">
+
+  <p class="tagline">Авто в Германии</p>
 
   <div class="city-badge">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
@@ -313,11 +326,9 @@
 
   <div class="links">
 
-    <a class="btn btn-tg" href="https://t.me/nazcar28" target="_blank" rel="noopener">
+    <a class="btn btn-tg" href="https://t.me/nazcar28" target="_blank" rel="noopener noreferrer">
       <div class="btn-icon">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M21.93 3.49L2.55 10.77c-1.3.5-1.29 1.2-.24 1.51l4.84 1.51 11.2-7.07c.53-.32 1.02-.15.62.2l-9.07 8.19h-.02l.34 5.09c.5 0 .72-.23 1-.5l2.4-2.33 5 3.69c.92.51 1.58.25 1.81-.85l3.27-15.4c.34-1.34-.51-1.95-1.72-1.31z" fill="#24A1DE"/>
-        </svg>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M21.93 3.49L2.55 10.77c-1.3.5-1.29 1.2-.24 1.51l4.84 1.51 11.2-7.07c.53-.32 1.02-.15.62.2l-9.07 8.19h-.02l.34 5.09c.5 0 .72-.23 1-.5l2.4-2.33 5 3.69c.92.51 1.58.25 1.81-.85l3.27-15.4c.34-1.34-.51-1.95-1.72-1.31z" fill="#24A1DE"/></svg>
       </div>
       <div class="btn-label">
         Telegram канал
@@ -326,9 +337,9 @@
       <span class="btn-arrow">›</span>
     </a>
 
-    <a class="btn btn-wa" href="https://wa.me/491622763205" target="_blank" rel="noopener">
+    <a class="btn btn-wa" href="https://wa.me/491622763205" target="_blank" rel="noopener noreferrer">
       <div class="btn-icon">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 24 24" fill="none">
           <path d="M17.47 14.38c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.68-1.64-.93-2.24-.24-.59-.49-.51-.68-.52-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.79.37-.27.3-1.03 1.01-1.03 2.46s1.05 2.85 1.2 3.05c.15.2 2.07 3.16 5.01 4.43.7.3 1.25.48 1.67.61.7.22 1.34.19 1.84.12.56-.08 1.73-.71 1.97-1.39.24-.68.24-1.27.17-1.39-.07-.12-.27-.19-.57-.34z" fill="#25D366"/>
           <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l5.08-1.34C8.48 21.52 10.21 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.71 0-3.3-.5-4.63-1.35l-.33-.2-3.02.8.81-2.96-.22-.35A7.96 7.96 0 014 12c0-4.42 3.58-8 8-8s8 3.58 8 8-3.58 8-8 8z" fill="#25D366"/>
         </svg>
@@ -340,9 +351,9 @@
       <span class="btn-arrow">›</span>
     </a>
 
-    <a class="btn btn-cat" href="https://wheel-ads.vercel.app" target="_blank" rel="noopener">
+    <a class="btn btn-cat" href="https://wheel-ads.vercel.app" target="_blank" rel="noopener noreferrer">
       <div class="btn-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#F5C400" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F5C400" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9"/>
           <circle cx="12" cy="12" r="3"/>
           <line x1="12" y1="3" x2="12" y2="9"/>
@@ -353,7 +364,7 @@
       </div>
       <div class="btn-label">
         Каталог шин
-        <div class="btn-sub">Б/у резина из Германии</div>
+        <div class="btn-sub">Б/у резина и диски</div>
       </div>
       <span class="btn-arrow">›</span>
     </a>
@@ -362,7 +373,7 @@
 
     <button class="btn btn-imp" onclick="document.getElementById('impressum').classList.add('open')">
       <div class="btn-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <line x1="12" y1="8" x2="12" y2="12"/>
           <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -377,8 +388,37 @@
 
   </div>
 
-  <div class="footer">Авто в Германии · Siegen, Germany</div>
+  <div class="footer">
+    <span class="footer-text">NAZCAR, Siegen, Deutschland</span>
+  </div>
 
+</div>
+
+<!-- TIKTOK POPUP -->
+<div class="tt-overlay" id="tt-popup">
+  <div class="tt-box">
+    <div class="tt-handle"></div>
+    <div class="tt-head">
+      <div class="tt-icon">🌐</div>
+      <div>
+        <div class="tt-title">Откройте в браузере</div>
+        <div class="tt-sub">Сайт не работает во встроенном браузере TikTok</div>
+      </div>
+    </div>
+    <div class="tt-steps">
+      <div class="tt-step">
+        <div class="tt-num n1">1</div>
+        <div class="tt-step-text">Нажмите <strong>···</strong> в правом нижнем углу</div>
+        <div class="tt-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="tt-step">
+        <div class="tt-num n2">2</div>
+        <div class="tt-step-text">Выберите <strong>«Открыть в браузере»</strong></div>
+      </div>
+    </div>
+    <p class="tt-hint">или скопируйте ссылку и вставьте в Safari / Chrome</p>
+    <button class="tt-btn" onclick="document.getElementById('tt-popup').classList.remove('open')">Понятно</button>
+  </div>
 </div>
 
 <!-- IMPRESSUM MODAL -->
@@ -387,47 +427,37 @@
     <div class="modal-handle"></div>
     <button class="modal-close" onclick="document.getElementById('impressum').classList.remove('open')">×</button>
     <h2>Impressum</h2>
-
     <div class="modal-section">
       <h3>Angaben gemäß § 5 TMG</h3>
-      <p>
-        Авто в Германии<br>
-        [Имя владельца / Inhaber]<br>
-        [Straße, Hausnummer]<br>
-        57074 Siegen, Deutschland
-      </p>
+      <p>NAZCAR<br>[Имя владельца / Inhaber]<br>[Straße, Hausnummer]<br>57074 Siegen, Deutschland</p>
     </div>
-
     <div class="modal-section">
       <h3>Kontakt</h3>
-      <p>
-        WhatsApp: +49 162 2763205<br>
-        Telegram: @nazcar28
-      </p>
+      <p>WhatsApp: +49 162 2763205<br>Telegram: @nazcar28</p>
     </div>
-
     <div class="modal-section">
       <h3>Деятельность</h3>
-      <p>
-        Авто в Германии занимается подбором и продажей автомобилей на территории Германии, а также организацией доставки в другие страны. Мы предлагаем автомобили как из наличия, так и под индивидуальный заказ с учётом ваших пожеланий по марке, модели, бюджету и комплектации.
-      </p>
+      <p>NAZCAR занимается подбором и продажей автомобилей на территории Германии, а также организацией доставки в другие страны. Мы предлагаем автомобили как из наличия, так и под индивидуальный заказ с учётом ваших пожеланий по марке, модели, бюджету и комплектации.</p>
     </div>
-
     <div class="modal-section">
       <h3>Haftungshinweis</h3>
-      <p>
-        Trotz sorgfältiger inhaltlicher Kontrolle übernehmen wir keine Haftung für die Inhalte externer Links. Für den Inhalt der verlinkten Seiten sind ausschließlich deren Betreiber verantwortlich.
-      </p>
+      <p>Trotz sorgfältiger inhaltlicher Kontrolle übernehmen wir keine Haftung für die Inhalte externer Links. Für den Inhalt der verlinkten Seiten sind ausschließlich deren Betreiber verantwortlich.</p>
     </div>
-
     <div class="modal-section">
       <h3>Datenschutz</h3>
-      <p>
-        Diese Seite erhebt keine personenbezogenen Daten. Bei Kontaktaufnahme über WhatsApp oder Telegram gelten die Datenschutzrichtlinien der jeweiligen Plattform.
-      </p>
+      <p>Diese Seite erhebt keine personenbezogenen Daten. Bei Kontaktaufnahme über WhatsApp oder Telegram gelten die Datenschutzrichtlinien der jeweiligen Plattform.</p>
     </div>
   </div>
 </div>
+
+<script>
+  (function(){
+    var ua = navigator.userAgent || '';
+    if(/musical_ly|TikTok|BytedanceWebview/i.test(ua)){
+      document.getElementById('tt-popup').classList.add('open');
+    }
+  })();
+</script>
 
 </body>
 </html>
