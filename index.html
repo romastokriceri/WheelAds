@@ -110,17 +110,6 @@
 
     .wheel-list { display: flex; flex-direction: column; }
 
-    /* Sub-label when multiple full sizes exist within one Zoll group */
-    .size-sublabel {
-      font-size: 12px;
-      color: var(--text3);
-      letter-spacing: 0.04em;
-      margin-top: 12px;
-      margin-bottom: 2px;
-      padding-bottom: 4px;
-      border-bottom: 0.5px dashed var(--border);
-    }
-
     .wheel-item {
       display: grid;
       grid-template-columns: 56px 1fr auto;
@@ -334,20 +323,26 @@ function seasonRu(s) {
   return s;
 }
 
-// "195/60 R18" → "195/60"  (everything before the first space+R or just return as-is)
+// "195/60 R18" → "195/60"
+// "215/65 R16C" → "215/65"
 function shortSize(size) {
-  const m = size.match(/^(.+?)\s+R\d/i);
+  const m = size.match(/^(.+?)\s+[A-Z]*\d+[A-Z]*/i);
   return m ? m[1] : size;
 }
 
-// "18" or "18 Zoll" → "R18"
+// Повертає базову групу (лише цифри) для створення спільної кнопки: "ZR16" чи "R16C" -> "16"
+function getZollNumber(z) {
+  return String(z).replace(/[^\d]/g, '').trim();
+}
+
+// Гарне ім'я для заголовків та кнопок ("16" -> "R16")
 function zollLabel(z) {
-  const n = String(z).replace(/[^\d]/g, '');
+  const n = getZollNumber(z);
   return n ? 'R' + n : z;
 }
 
 function makeAnchor(z) {
-  return 'r' + String(z).replace(/[^\d]/g, '');
+  return 'r' + getZollNumber(z);
 }
 
 async function loadAndRender() {
@@ -371,9 +366,9 @@ async function loadAndRender() {
 
     const iStatus = col('Status');
     const iID     = col('ID');
-    const iMarke  = col('Marke');
+    const iMarke   = col('Marke');
     const iModell = col('Modell');
-    const iGröße  = col('Größe');
+    const iGröße   = col('Größe');
     const iZoll   = col('Zoll');
     const iDot    = col('Dot');
     const iSaison = col('Saison');
@@ -408,43 +403,43 @@ async function loadAndRender() {
       return;
     }
 
-    // Group by Zoll
-    const byZoll = {};
+    // ГРУПУВАННЯ: Тепер групуємо суто по цифрах (наприклад, "16"), щоб "ZR16", "R16", "R16C" були в одній групі
+    const byZollGroup = {};
     wheels.forEach(w => {
-      const key = w.zoll || '?';
-      if (!byZoll[key]) byZoll[key] = [];
-      byZoll[key].push(w);
+      const numKey = getZollNumber(w.zoll) || '?';
+      if (!byZollGroup[numKey]) byZollGroup[numKey] = [];
+      byZollGroup[numKey].push(w);
     });
 
-    // Sort Zoll keys numerically (extract digits from any format like "18", "18 Zoll", "R18")
-    const zollNum = z => parseInt(String(z).replace(/[^\d]/g, '')) || 0;
-    const zolls = Object.keys(byZoll).sort((a, b) => zollNum(a) - zollNum(b));
+    const zolls = Object.keys(byZollGroup).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
 
     heroMeta.textContent = `${wheels.length} позиций · ${zolls.length} размеров`;
 
-    // Pills
+    // Створення плашок (Pills) верхнього меню — тепер без дублів, чітко R15, R16, R17...
     const sizesSection = document.getElementById('sizes-section');
     sizesSection.style.display = 'block';
     const sizesGrid = document.getElementById('sizes-grid');
+    sizesGrid.innerHTML = ''; // Очищення
+    
     zolls.forEach(z => {
       const a = document.createElement('a');
       a.className = 'size-pill';
-      a.textContent = zollLabel(z);
+      a.textContent = zollLabel(z); // Завжди покаже красиве "R16"
       a.href = '#' + makeAnchor(z);
       sizesGrid.appendChild(a);
     });
 
-    // Sections
+    // Створення секцій з товарами
     content.innerHTML = '';
     zolls.forEach(z => {
-      const items = byZoll[z];
+      const items = byZollGroup[z];
       items.sort((a, b) => a.size.localeCompare(b.size));
 
       const sec = document.createElement('div');
       sec.className = 'section';
       sec.id = makeAnchor(z);
 
-      // Header
+      // Шапка секції
       const seasons = [...new Set(items.map(w => seasonRu(w.saison)).filter(Boolean))];
       const hdr = document.createElement('div');
       hdr.className = 'section-header';
@@ -454,45 +449,41 @@ async function loadAndRender() {
         seasons.map(s => `<span class="season-tag">${s}</span>`).join('');
       sec.appendChild(hdr);
 
-      // Sub-group by full Größe within the Zoll section
-      const bySize = {};
-      items.forEach(w => {
-        if (!bySize[w.size]) bySize[w.size] = [];
-        bySize[w.size].push(w);
-      });
-      const sizes = Object.keys(bySize).sort((a, b) => a.localeCompare(b));
-
       const list = document.createElement('div');
       list.className = 'wheel-list';
 
-      sizes.forEach(sz => {
-        bySize[sz].forEach(w => {
-          const item = document.createElement('div');
-          item.className = 'wheel-item';
+      items.forEach(w => {
+        const item = document.createElement('div');
+        item.className = 'wheel-item';
 
-          const year = dotToYear(w.dot);
-          const tc = treadClass(w.durch);
-          const treadHtml = tc
-            ? `<span class="tread-dot ${tc}"></span>${w.durch} мм<span class="dot-sep">·</span>`
-            : '';
-          const name = [w.marke, w.modell].filter(Boolean).join(' ');
-          // Show only "195/60" part — Zoll is already in the section title
-          const displaySize = shortSize(w.size);
-          const yearHtml = year ? `${year} г.<span class="dot-sep">·</span>` : '';
+        const year = dotToYear(w.dot);
+        const tc = treadClass(w.durch);
+        const treadHtml = tc
+          ? `<span class="tread-dot ${tc}"></span>${w.durch} мм<span class="dot-sep">·</span>`
+          : '';
+        const name = [w.marke, w.modell].filter(Boolean).join(' ');
+        
+        // Зрізаємо передню частину розміру (напр. "195/60")
+        const displaySize = shortSize(w.size);
+        
+        // ВАЖЛИВО: Отримуємо повне маркування з колонки "Zoll" таблиці (ZR16, R16C, 16 Zoll тощо)
+        const fullZoll = w.zoll ? w.zoll : zollLabel(z);
+        
+        const yearHtml = year ? `${year} г.<span class="dot-sep">·</span>` : '';
 
-          item.innerHTML =
-            `<span class="wheel-id">#${w.id}</span>` +
-            `<div>
-              <div class="wheel-name">${name}</div>
-              <div class="wheel-meta">${displaySize}<span class="dot-sep">·</span>${treadHtml}${yearHtml}${seasonRu(w.saison)}</div>
-            </div>` +
-            `<div class="wheel-right">
-              <span class="wheel-price">${w.preis}</span>
-              ${w.anzahl ? `<div class="wheel-set">${w.anzahl} шт. комплект</div>` : ''}
-            </div>`;
+        // Виводимо у форматі: "195/60 ZR16" або "215/65 R16C"
+        item.innerHTML =
+          `<span class="wheel-id">#${w.id}</span>` +
+          `<div>
+            <div class="wheel-name">${name}</div>
+            <div class="wheel-meta">${displaySize} ${fullZoll}<span class="dot-sep">·</span>${treadHtml}${yearHtml}${seasonRu(w.saison)}</div>
+          </div>` +
+          `<div class="wheel-right">
+            <span class="wheel-price">${w.preis}</span>
+            ${w.anzahl ? `<div class="wheel-set">${w.anzahl} шт. комплект</div>` : ''}
+          </div>`;
 
-          list.appendChild(item);
-        });
+        list.appendChild(item);
       });
 
       sec.appendChild(list);
