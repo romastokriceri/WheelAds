@@ -8,14 +8,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:       #0d0d0d;
-    --surface:  #161616;
-    --border:   #2a2a2a;
-    --accent:   #e8ff00;
-    --text:     #f0f0f0;
-    --muted:    #666;
-    --red:      #ff3b3b;
-    --green:    #00e676;
+    --bg:      #0d0d0d;
+    --surface: #161616;
+    --border:  #2a2a2a;
+    --accent:  #e8ff00;
+    --text:    #f0f0f0;
+    --muted:   #666;
+    --red:     #ff3b3b;
+    --green:   #00e676;
+    --blue:    #4fc3f7;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,11 +31,355 @@
     align-items: center;
   }
 
-  /* ── Header ── */
   header {
     width: 100%;
     max-width: 480px;
     padding: 20px 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--accent); }
+  .logo-sub  { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+  .card {
+    width: 100%;
+    max-width: 480px;
+    padding: 20px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    animation: fadeUp .4s ease both;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+  /* Photo */
+  .photo-wrap {
+    width: 100%; aspect-ratio: 4/3;
+    background: var(--surface);
+    border-radius: 16px; overflow: hidden;
+    position: relative; margin-bottom: 20px;
+  }
+  .photo-wrap img { width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .4s ease; }
+  .photo-wrap img.loaded { opacity:1; }
+  .photo-placeholder {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:8px; color:var(--muted); font-size:13px;
+  }
+  .photo-placeholder svg { opacity:.3; }
+
+  /* Status */
+  .status-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .badge {
+    font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;
+    padding:4px 10px; border-radius:20px;
+    background:color-mix(in srgb,var(--green) 15%,transparent);
+    color:var(--green);
+    border:1px solid color-mix(in srgb,var(--green) 30%,transparent);
+  }
+  .badge.sold { background:color-mix(in srgb,var(--red) 15%,transparent); color:var(--red); border-color:color-mix(in srgb,var(--red) 30%,transparent); }
+  .tire-id { font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; color:var(--muted); }
+
+  /* Title */
+  .tire-name  { font-family:'Bebas Neue',sans-serif; font-size:42px; line-height:1; letter-spacing:1px; margin-bottom:4px; }
+  .tire-size  { font-size:18px; color:var(--accent); font-weight:500; margin-bottom:20px; letter-spacing:.5px; }
+
+  /* Type chip */
+  .type-chip {
+    display:inline-block;
+    font-size:10px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase;
+    padding:3px 10px; border-radius:20px; margin-bottom:14px;
+    background:color-mix(in srgb,var(--blue) 15%,transparent);
+    color:var(--blue);
+    border:1px solid color-mix(in srgb,var(--blue) 25%,transparent);
+  }
+  .type-chip.reifen       { --blue:#aaa; }
+  .type-chip.felgen       { color:#ce93d8; background:color-mix(in srgb,#ce93d8 15%,transparent); border-color:color-mix(in srgb,#ce93d8 25%,transparent); }
+  .type-chip.komplettraeder { color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,transparent); border-color:color-mix(in srgb,var(--accent) 25%,transparent); }
+
+  /* Price */
+  .price-block {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:16px 20px;
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .price-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .price-value { font-family:'Bebas Neue',sans-serif; font-size:38px; letter-spacing:1px; color:var(--accent); }
+  .set-count   { font-size:13px; color:var(--muted); margin-top:2px; }
+
+  /* Section header */
+  .section-header {
+    font-size:10px; font-weight:500; letter-spacing:2px; text-transform:uppercase;
+    color:var(--muted); margin-bottom:10px; margin-top:4px;
+  }
+
+  /* Specs grid */
+  .specs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .spec  { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+  .spec-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+  .spec-value { font-size:16px; font-weight:500; }
+
+  /* Felgen block */
+  .felgen-block {
+    background:var(--surface);
+    border:1px solid #333;
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .felgen-block .section-header { margin-top:0; }
+  .felgen-specs { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .felgen-specs .spec { border-color:#2f2f2f; }
+
+  /* Divider */
+  .divider { height:1px; background:var(--border); margin:4px 0 16px; }
+
+  /* Comment */
+  .comment-block {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:14px 16px;
+    font-size:14px; color:#aaa; line-height:1.5; display:none;
+  }
+  .comment-block.visible { display:block; }
+
+  /* States */
+  .state { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; gap:16px; text-align:center; padding:40px; }
+  .state.active { display:flex; }
+  .state-icon { font-size:48px; }
+  .state h2 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1px; }
+  .state p  { font-size:14px; color:var(--muted); }
+
+  .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo-text">Car Wheel</div>
+    <div class="logo-sub">Склад · Шини та диски</div>
+  </div>
+</header>
+
+<div class="state active" id="state-loading">
+  <div class="spinner"></div>
+  <p>Завантаження...</p>
+</div>
+
+<div class="state" id="state-error">
+  <div class="state-icon">❌</div>
+  <h2>Товар не знайдено</h2>
+  <p id="error-msg">Перевір номер або зверніться до продавця.</p>
+</div>
+
+<div class="card" id="card" style="display:none">
+
+  <!-- Photo -->
+  <div class="photo-wrap" id="photo-wrap">
+    <div class="photo-placeholder" id="photo-placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+        <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+      </svg>
+      Фото відсутнє
+    </div>
+  </div>
+
+  <!-- Status + ID -->
+  <div class="status-row">
+    <span class="badge" id="badge">Доступно</span>
+    <span class="tire-id" id="tire-id">#—</span>
+  </div>
+
+  <!-- Type chip -->
+  <div class="type-chip" id="type-chip" style="display:none"></div>
+
+  <!-- Name -->
+  <div class="tire-name" id="tire-name">—</div>
+  <div class="tire-size" id="tire-size" style="display:none"></div>
+
+  <!-- Price -->
+  <div class="price-block">
+    <div>
+      <div class="price-label">Ціна</div>
+      <div class="price-value" id="price">—</div>
+    </div>
+    <div class="set-info">
+      <div class="set-count" id="set-count"></div>
+    </div>
+  </div>
+
+  <!-- ── ШИНА ── -->
+  <div id="tire-section" style="display:none">
+    <div class="section-header">🛞 Шина</div>
+    <div class="specs">
+      <div class="spec"><div class="spec-label">DOT</div><div class="spec-value" id="dot">—</div></div>
+      <div class="spec"><div class="spec-label">Сезон</div><div class="spec-value" id="saison">—</div></div>
+      <div class="spec"><div class="spec-label">Профіль</div><div class="spec-value" id="profil">—</div></div>
+      <div class="spec"><div class="spec-label">LI / SI</div><div class="spec-value" id="li-si">—</div></div>
+    </div>
+  </div>
+
+  <!-- ── ДИСКИ ── -->
+  <div class="felgen-block" id="felgen-section" style="display:none">
+    <div class="section-header">⚙️ Диски</div>
+    <div class="felgen-specs">
+      <div class="spec"><div class="spec-label">Марка / KBA</div><div class="spec-value" id="f-marke">—</div></div>
+      <div class="spec"><div class="spec-label">Розмір</div><div class="spec-value" id="f-grosse">—</div></div>
+      <div class="spec"><div class="spec-label">PCD</div><div class="spec-value" id="f-pcd">—</div></div>
+      <div class="spec"><div class="spec-label">ET</div><div class="spec-value" id="f-et">—</div></div>
+      <div class="spec"><div class="spec-label">Zoll</div><div class="spec-value" id="f-zoll">—</div></div>
+      <div class="spec"><div class="spec-label">DIA</div><div class="spec-value" id="f-dia">—</div></div>
+      <div class="spec"><div class="spec-label">Отвори</div><div class="spec-value" id="f-loecher">—</div></div>
+      <div class="spec" id="f-set-spec" style="display:none"><div class="spec-label">Кількість</div><div class="spec-value" id="f-set">—</div></div>
+    </div>
+  </div>
+
+  <!-- Comment -->
+  <div class="comment-block" id="comment"></div>
+
+</div>
+
+<script>
+const saisonIcon = { sommer:"☀️", winter:"❄️", ganzjahres:"🌦" };
+const typeLabel   = { reifen:"Шини", felgen:"Диски", komplettraeder:"Комплект" };
+
+function show(id) {
+  ["state-loading","state-error","card"].forEach(s => {
+    const el = document.getElementById(s);
+    if (s === "card") el.style.display = (s === id) ? "block" : "none";
+    else el.classList.toggle("active", s === id);
+  });
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val || "—";
+}
+
+function showEl(id, visible = true) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? "" : "none";
+}
+
+async function load() {
+  const params  = new URLSearchParams(location.search);
+  const rawId   = params.get("id") || params.get("tire_id") || "";
+  if (!rawId) { show("state-error"); document.getElementById("error-msg").textContent = "ID не вказано."; return; }
+
+  try {
+    const res  = await fetch(`/api/tire?id=${encodeURIComponent(rawId)}`);
+    if (!res.ok) { show("state-error"); return; }
+    const data = await res.json();
+
+    const { type, id, photo, tire, felgen } = data;
+
+    // ── Photo ──
+    if (photo) {
+      const img = document.createElement("img");
+      img.src = photo; img.alt = "Фото";
+      img.onload = () => img.classList.add("loaded");
+      document.getElementById("photo-placeholder").style.display = "none";
+      document.getElementById("photo-wrap").appendChild(img);
+    }
+
+    // ── Badge / status ──
+    const status = (tire?.status || felgen?.status || "Доступно");
+    const sold   = /прода|sold/i.test(status);
+    const badge  = document.getElementById("badge");
+    badge.textContent = sold ? "Продано" : status;
+    if (sold) badge.classList.add("sold");
+
+    setText("tire-id", `#${String(id).padStart(4,"0")}`);
+
+    // ── Type chip ──
+    const chip = document.getElementById("type-chip");
+    chip.textContent = typeLabel[type] || type;
+    chip.className   = `type-chip ${type}`;
+    showEl("type-chip", type !== "reifen"); // для звичайних шин не показуємо
+
+    // ── Name & size ──
+    if (type === "felgen") {
+      const name = [felgen?.marke, felgen?.modell].filter(Boolean).join(" — ");
+      setText("tire-name", name || "Диск");
+      const sz = [felgen?.grosse, felgen?.pcd && `PCD ${felgen.pcd}`].filter(Boolean).join(" · ");
+      setText("tire-size", sz);
+      showEl("tire-size", !!sz);
+    } else {
+      const name = [tire?.marke, tire?.modell].filter(Boolean).join(" ");
+      setText("tire-name", name || "Шина");
+      setText("tire-size", tire?.grosse);
+      showEl("tire-size", !!tire?.grosse);
+    }
+
+    // ── Price ──
+    const preis = tire?.preis || felgen?.preis;
+    setText("price", preis || "—");
+    const setVal = tire?.set || felgen?.set;
+    if (setVal) document.getElementById("set-count").textContent = `${setVal} шт. у сеті`;
+
+    // ── Tire specs ──
+    if (tire && type !== "felgen") {
+      showEl("tire-section");
+      setText("dot", tire.dot ? tire.dot.slice(-4) : "—");
+      const s = (tire.saison || "").toLowerCase();
+      setText("saison", (saisonIcon[s] || "") + " " + (tire.saison || "—"));
+      setText("profil", tire.profil_mm ? `${tire.profil_mm} мм` : "—");
+      const liSi = [tire.belastung, tire.geschw].filter(Boolean).join(" / ");
+      setText("li-si", liSi || "—");
+    }
+
+    // ── Felgen specs ──
+    if (felgen) {
+      showEl("felgen-section");
+      const markeKba = [felgen.marke, felgen.modell].filter(Boolean).join(" / ");
+      setText("f-marke",   markeKba || "—");
+      setText("f-grosse",  felgen.grosse);
+      setText("f-pcd",     felgen.pcd);
+      setText("f-et",      felgen.et ? `ET ${felgen.et}` : "—");
+      setText("f-zoll",    felgen.zoll ? `${felgen.zoll}"` : "—");
+      setText("f-dia",     felgen.dia ? `${felgen.dia} mm` : "—");
+      setText("f-loecher", felgen.loecher ? `${felgen.loecher}x` : "—");
+      if (felgen.set && type === "felgen") {
+        showEl("f-set-spec");
+        setText("f-set", `${felgen.set} шт.`);
+      }
+    } else if (tire?.felgen_raw) {
+      // Fallback: парсимо рядок з колонки M таблиці Tires
+      showEl("felgen-section");
+      document.getElementById("f-marke").textContent = tire.felgen_raw;
+      // Спробуємо витягнути PCD / ET / Zoll регулярками
+      const pcdM  = tire.felgen_raw.match(/(\d+x[\d.]+)/i);
+      const etM   = tire.felgen_raw.match(/(?:ET|IS)\s*(\d+)/i);
+      const zollM = tire.felgen_raw.match(/(\d{2})\s*(?:Zoll|")/i) || tire.felgen_raw.match(/[Jx]\s*(\d{2})\b/);
+      if (pcdM)  setText("f-pcd",  pcdM[1]);
+      if (etM)   setText("f-et",   `ET ${etM[1]}`);
+      if (zollM) setText("f-zoll", `${zollM[1]}"`);
+    }
+
+    // ── Comment ──
+    const commentText = tire?.comment || felgen?.comment || "";
+    if (commentText) {
+      const el = document.getElementById("comment");
+      el.textContent = commentText;
+      el.classList.add("visible");
+    }
+
+    show("card");
+  } catch (e) {
+    console.error(e);
+    show("state-error");
+  }
+}
+
+load();
+</script>
+</body>
+</html>    padding: 20px 24px 0;
     display: flex;
     align-items: center;
     gap: 10px;
