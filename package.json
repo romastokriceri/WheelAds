@@ -1,0 +1,24 @@
+{
+  "name": "wheelads",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/romastokriceri/WheelAds.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/romastokriceri/WheelAds/issues"
+  },
+  "homepage": "https://github.com/romastokriceri/WheelAds#readme",
+  "dependencies": {
+    "googleapis": "^173.0.0"
+  }
+}

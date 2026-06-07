@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Wheel — Склад</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0d0d0d;
+    --surface:  #161616;
+    --border:   #2a2a2a;
+    --accent:   #e8ff00;
+    --text:     #f0f0f0;
+    --muted:    #666;
+    --red:      #ff3b3b;
+    --green:    #00e676;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── Header ── */
+  header {
+    width: 100%;
+    max-width: 480px;
+    padding: 20px 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Card ── */
+  .card {
+    width: 100%;
+    max-width: 480px;
+    padding: 20px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Photo */
+  .photo-wrap {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--surface);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .photo-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity .4s ease;
+  }
+  .photo-wrap img.loaded { opacity: 1; }
+  .photo-placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .photo-placeholder svg { opacity: .3; }
+
+  /* Status badge */
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--green) 15%, transparent);
+    color: var(--green);
+    border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
+  }
+  .badge.sold {
+    background: color-mix(in srgb, var(--red) 15%, transparent);
+    color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 30%, transparent);
+  }
+  .tire-id {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  /* Title */
+  .tire-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    line-height: 1;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .tire-size {
+    font-size: 18px;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 20px;
+    letter-spacing: .5px;
+  }
+
+  /* Price */
+  .price-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .price-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .price-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    letter-spacing: 1px;
+    color: var(--accent);
+  }
+  .set-info { text-align: right; }
+  .set-count { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  /* Specs grid */
+  .specs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .spec {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .spec-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .spec-value {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  /* Saison icon */
+  .saison-wrap { display: flex; align-items: center; gap: 6px; }
+
+  /* Comment */
+  .comment-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 14px;
+    color: #aaa;
+    line-height: 1.5;
+    display: none;
+  }
+  .comment-block.visible { display: block; }
+
+  /* ── States ── */
+  .state { display: none; flex-direction: column; align-items: center;
+           justify-content: center; min-height: 60vh; gap: 16px; text-align: center; padding: 40px; }
+  .state.active { display: flex; }
+  .state-icon { font-size: 48px; }
+  .state h2 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; }
+  .state p  { font-size: 14px; color: var(--muted); }
+
+  /* Spinner */
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0 16px;
+  }
+
+  /* Fade-in animation */
+  .card { animation: fadeUp .4s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo-text">Car Wheel</div>
+    <div class="logo-sub">Склад · Шини та диски</div>
+  </div>
+</header>
+
+<!-- Loading -->
+<div class="state active" id="state-loading">
+  <div class="spinner"></div>
+  <p>Завантаження...</p>
+</div>
+
+<!-- Error -->
+<div class="state" id="state-error">
+  <div class="state-icon">❌</div>
+  <h2>Товар не знайдено</h2>
+  <p id="error-msg">Перевір номер або зверніться до продавця.</p>
+</div>
+
+<!-- Card -->
+<div class="card" id="card" style="display:none">
+
+  <!-- Photo -->
+  <div class="photo-wrap" id="photo-wrap">
+    <div class="photo-placeholder" id="photo-placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+        <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+      </svg>
+      Фото відсутнє
+    </div>
+  </div>
+
+  <!-- Status + ID -->
+  <div class="status-row">
+    <span class="badge" id="badge">Доступно</span>
+    <span class="tire-id" id="tire-id">#—</span>
+  </div>
+
+  <!-- Name -->
+  <div class="tire-name" id="tire-name">—</div>
+  <div class="tire-size" id="tire-size">—</div>
+
+  <!-- Price -->
+  <div class="price-block">
+    <div>
+      <div class="price-label">Ціна</div>
+      <div class="price-value" id="price">—</div>
+    </div>
+    <div class="set-info">
+      <div class="set-count" id="set-count"></div>
+    </div>
+  </div>
+
+  <!-- Specs -->
+  <div class="specs">
+    <div class="spec">
+      <div class="spec-label">DOT</div>
+      <div class="spec-value" id="dot">—</div>
+    </div>
+    <div class="spec">
+      <div class="spec-label">Сезон</div>
+      <div class="spec-value saison-wrap" id="saison">—</div>
+    </div>
+    <div class="spec">
+      <div class="spec-label">Профіль</div>
+      <div class="spec-value" id="profil">—</div>
+    </div>
+    <div class="spec">
+      <div class="spec-label">LI / SI</div>
+      <div class="spec-value" id="li-si">—</div>
+    </div>
+  </div>
+
+  <!-- Comment -->
+  <div class="comment-block" id="comment"></div>
+
+</div>
+
+<script>
+const saisonIcon = { sommer: "☀️", winter: "❄️", ganzjahres: "🔄" };
+
+function show(id) {
+  ["state-loading","state-error","card"].forEach(s => {
+    const el = document.getElementById(s);
+    if (s === "card") { el.style.display = s === id ? "flex" : "none"; el.style.flexDirection = "column"; }
+    else el.classList.toggle("active", s === id);
+  });
+  if (id === "card") document.getElementById("card").style.display = "block";
+}
+
+function setText(id, val) { document.getElementById(id).textContent = val || "—"; }
+
+async function load() {
+  const params = new URLSearchParams(location.search);
+  const rawId  = params.get("id") || params.get("tire_id") || "";
+  if (!rawId) { show("state-error"); document.getElementById("error-msg").textContent = "ID не вказано."; return; }
+
+  try {
+    const res  = await fetch(`/api/tire?id=${encodeURIComponent(rawId)}`);
+    if (!res.ok) { show("state-error"); return; }
+    const tire = await res.json();
+
+    // Photo
+    if (tire.photo) {
+      const img = document.createElement("img");
+      img.src = tire.photo;
+      img.alt = "Фото шини";
+      img.onload = () => img.classList.add("loaded");
+      document.getElementById("photo-placeholder").style.display = "none";
+      document.getElementById("photo-wrap").appendChild(img);
+    }
+
+    // Badge
+    const badge = document.getElementById("badge");
+    const sold  = (tire.status || "").toLowerCase().includes("прода") || (tire.status || "").toLowerCase().includes("sold");
+    badge.textContent = sold ? "Продано" : (tire.status || "Доступно");
+    if (sold) badge.classList.add("sold");
+
+    setText("tire-id", `#${String(tire.id).padStart(4,"0")}`);
+
+    // Name
+    const name = [tire.marke, tire.modell].filter(Boolean).join(" ");
+    setText("tire-name", name || "Без назви");
+    setText("tire-size", tire.grosse);
+
+    // Price
+    setText("price", tire.preis || "—");
+    if (tire.set) document.getElementById("set-count").textContent = `${tire.set} шт. у сеті`;
+
+    // Specs
+    setText("dot", tire.dot ? tire.dot.slice(-4) : "—");
+
+    const s = (tire.saison || "").toLowerCase();
+    const icon = saisonIcon[s] || "";
+    document.getElementById("saison").textContent = icon + " " + (tire.saison || "—");
+
+    setText("profil", tire.profil_mm ? `${tire.profil_mm} мм` : "—");
+    const liSi = [tire.belastung, tire.geschw].filter(Boolean).join(" / ");
+    setText("li-si", liSi || "—");
+
+    // Comment
+    if (tire.comment) {
+      const el = document.getElementById("comment");
+      el.textContent = tire.comment;
+      el.classList.add("visible");
+    }
+
+    show("card");
+  } catch (e) {
+    console.error(e);
+    show("state-error");
+  }
+}
+
+load();
+</script>
+</body>
+</html>
