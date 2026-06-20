@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+"""
+export_db.py
+────────────
+Запускати після будь-яких змін у wheel_database.py:
+
+    python3 export_db.py
+
+Генерує wheel_db.json у тій самій папці.
+Цей файл має бути закомічений у репозиторій — api/cars.js читає його напряму.
+"""
+
+import json
+import pathlib
+import wheel_database as wd
+
+OUT = pathlib.Path(__file__).parent / "wheel_db.json"
+
+
+def spec_to_dict(s: wd.WheelSpec) -> dict:
+    return {
+        "model":  s.model,
+        "pcd":    s.pcd,
+        "et_min": s.et_min,
+        "et_max": s.et_max,
+        "dia":    s.dia,
+        "zoll":   s.zoll,
+        "notes":  s.notes,
+    }
+
+
+data = [spec_to_dict(s) for s in wd.ALL_DB]
+
+with open(OUT, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+
+print(f"✅  {OUT}  —  {len(data)} авто, {OUT.stat().st_size // 1024} KB")
