@@ -108,18 +108,16 @@
     grid-column: 2;
     font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 2px;
   }
-
-  /* ── Кнопка «Відкрити в Telegram» ── */
+  
+  /* ── Прихований лінк «адмін-доступ» ── */
   .tg-open-btn {
-    display:flex; align-items:center; justify-content:center; gap:10px;
-    width:100%; padding:14px; border-radius:14px;
-    background:color-mix(in srgb,var(--blue) 12%,transparent);
-    border:1px solid color-mix(in srgb,var(--blue) 25%,transparent);
-    color:var(--blue); font-size:14px; font-weight:500;
-    text-decoration:none; margin-bottom:16px; transition:background .2s;
+    display:none; align-items:center; justify-content:center; gap:6px;
+    width:100%; padding:16px 0 8px;
+    color:var(--muted); font-size:11px; font-weight:400;
+    text-decoration:none; opacity:.55; transition:opacity .2s;
   }
-  .tg-open-btn:active { background:color-mix(in srgb,var(--blue) 22%,transparent); }
-  .tg-open-btn svg { flex-shrink:0; }
+  .tg-open-btn:active { opacity:.85; }
+  .tg-open-btn svg { flex-shrink:0; width:13px; height:13px; }
 
   /* ── Панель редагування ── */
   .edit-panel {
@@ -184,7 +182,6 @@
   <p id="error-msg">Перевір номер або зверніться до продавця.</p>
 </div>
 
-<!-- ── Картка товару ── -->
 <div class="card" id="card" style="display:none">
 
   <div class="photo-wrap" id="photo-wrap">
@@ -215,15 +212,6 @@
     <div><div class="set-count" id="set-count"></div></div>
   </div>
 
-  <!-- Кнопка «Відкрити в Telegram» — тільки в браузері -->
-  <a class="tg-open-btn" id="tg-open-btn" href="#" style="display:none" target="_blank">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 14.53l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.626.956z"/>
-    </svg>
-    Відкрити в Telegram для керування
-  </a>
-
-  <!-- Шина -->
   <div id="tire-section" style="display:none">
     <div class="section-header">🛞 Шина</div>
     <div class="specs">
@@ -234,7 +222,6 @@
     </div>
   </div>
 
-  <!-- Диски -->
   <div class="felgen-block" id="felgen-section" style="display:none">
     <div class="section-header">⚙️ Диски</div>
     <div class="felgen-specs">
@@ -250,7 +237,6 @@
 
   <div class="comment-block" id="comment"></div>
 
-  <!-- ── Сумісні авто ── -->
   <div id="cars-section" style="display:none">
     <div class="section-header" style="margin-top:8px">🚗 Сумісні авто</div>
     <div id="cars-loading" style="display:none;text-align:center;padding:16px">
@@ -259,9 +245,15 @@
     <div id="cars-list"></div>
   </div>
 
+  <a href="#" class="tg-open-btn" id="tg-open-btn">
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.62.15-.15 2.7-2.48 2.75-2.7.01-.03.01-.14-.06-.2-.07-.06-.17-.04-.25-.02-.11.02-1.83 1.16-5.17 3.42-.49.34-.93.5-1.33.49-.44-.01-1.29-.25-1.92-.45-.77-.25-1.39-.39-1.34-.83.03-.23.35-.46.97-.71 3.82-1.66 6.37-2.75 7.64-3.28 3.64-1.53 4.4-1.8 4.89-1.8.11 0 .35.03.5.15.13.1.17.24.18.34-.01.06.01.21 0 .28z"/>
+    </svg>
+    Відкрити в Telegram
+  </a>
+
 </div>
 
-<!-- ── Панель редагування ── -->
 <div class="edit-panel" id="edit-panel">
   <div class="edit-panel-title">✏️ Редагування</div>
   <div class="edit-row">
@@ -288,7 +280,6 @@
   </div>
 </div>
 
-<!-- Saving overlay -->
 <div class="saving-overlay" id="saving-overlay">
   <div class="spinner"></div>
   <p>Збереження...</p>
@@ -296,7 +287,7 @@
 
 <script>
 // ── Конфіг ───────────────────────────────────────────────────────────────────
-const BOT_USERNAME = "YourCarWheelBot"; // ← замінити на реальний username бота
+const BOT_USERNAME = "YourCarWheelBot"; 
 const saisonIcon   = { sommer:"☀️", winter:"❄️", ganzjahres:"🌦" };
 const typeLabel    = { reifen:"Шини", felgen:"Диски", komplettraeder:"Комплект" };
 
@@ -311,6 +302,7 @@ function showEl(id, on=true) { const el=$(id); if(el) el.style.display = on?"":"
 function show(state) {
   ["state-loading","state-error","card"].forEach(s => {
     const el=$(s);
+    if(!el) return;
     if(s==="card") el.style.display = s===state?"block":"none";
     else el.classList.toggle("active", s===state);
   });
@@ -340,8 +332,8 @@ async function loadCompatibleCars(data) {
 
   if (!pcd && !grosse) return;
 
-  $("cars-section").style.display = "";
-  $("cars-loading").style.display = "block";
+  showEl("cars-section", true);
+  showEl("cars-loading", true);
   $("cars-list").innerHTML        = "";
 
   try {
@@ -357,7 +349,6 @@ async function loadCompatibleCars(data) {
       return;
     }
 
-    // ── Результати перевірки диска ✅⚠️❌ ─────────────────────────────────
     if (fitment.length) {
       const label = document.createElement("div");
       label.className = "cars-pcd-label";
@@ -366,7 +357,6 @@ async function loadCompatibleCars(data) {
       renderFitment(list, fitment);
     }
 
-    // ── Авто за розміром шини ─────────────────────────────────────────────
     if (bySize.length) {
       if (fitment.length) {
         const hr = document.createElement("div");
@@ -386,15 +376,13 @@ async function loadCompatibleCars(data) {
 
   } catch(e) {
     console.error("cars API:", e);
-    $("cars-section").style.display = "none";
+    showEl("cars-section", false);
   } finally {
-    $("cars-loading").style.display = "none";
+    showEl("cars-loading", false);
   }
 }
 
-// Рендер таблиці fitment з кольоровими статусами
 function renderFitment(container, results) {
-  // Показуємо тільки ✅ і ⚠️ (❌ ховаємо щоб не захаращувати)
   const visible = results.filter(r => r.status !== "❌");
   if (!visible.length) {
     container.insertAdjacentHTML("beforeend",
@@ -422,7 +410,6 @@ function renderFitment(container, results) {
     container.appendChild(div);
   }
 
-  // Скільки ❌ приховано
   const hidden = results.length - visible.length;
   if (hidden > 0) {
     container.insertAdjacentHTML("beforeend",
@@ -432,7 +419,6 @@ function renderFitment(container, results) {
 
 // ── Завантаження даних ────────────────────────────────────────────────────────
 async function load() {
-  // ✅ PATCH: читаємо ID з хеш-фрагмента (#0054) або з query (?id=0054)
   const params = new URLSearchParams(location.search);
   const rawId  = location.hash.replace("#", "").trim()
               || params.get("id") || params.get("tire_id") || "";
@@ -474,7 +460,11 @@ function render(data) {
   const sold   = /прода|sold/i.test(status);
   const badge  = $("badge");
   badge.textContent = sold ? "Продано" : status;
-  if (sold) badge.classList.add("sold");
+  if (sold) {
+    badge.classList.add("sold");
+  } else {
+    badge.classList.remove("sold");
+  }
 
   setText("tire-id", `#${String(id).padStart(4,"0")}`);
 
@@ -482,16 +472,16 @@ function render(data) {
   if (type !== "reifen") {
     chip.textContent = typeLabel[type] || type;
     chip.className = `type-chip ${type}`;
-    showEl("type-chip");
+    showEl("type-chip", true);
   }
 
   if (type === "felgen") {
     setText("tire-name", [felgen?.marke, felgen?.modell].filter(Boolean).join(" — ") || "Диск");
     const sz = [felgen?.grosse, felgen?.pcd && `PCD ${felgen.pcd}`].filter(Boolean).join(" · ");
-    if (sz) { setText("tire-size", sz); showEl("tire-size"); }
+    if (sz) { setText("tire-size", sz); showEl("tire-size", true); }
   } else {
     setText("tire-name", [tire?.marke, tire?.modell].filter(Boolean).join(" ") || "Шина");
-    if (tire?.grosse) { setText("tire-size", tire.grosse); showEl("tire-size"); }
+    if (tire?.grosse) { setText("tire-size", tire.grosse); showEl("tire-size", true); }
   }
 
   setText("price", tire?.preis || felgen?.preis || "—");
@@ -499,7 +489,7 @@ function render(data) {
   if (setVal) $("set-count").textContent = `${setVal} шт. у сеті`;
 
   if (tire && type !== "felgen") {
-    showEl("tire-section");
+    showEl("tire-section", true);
     setText("dot", tire.dot ? tire.dot.slice(-4) : "—");
     const s = (tire.saison||"").toLowerCase();
     setText("saison", (saisonIcon[s]||"") + " " + (tire.saison||"—"));
@@ -508,7 +498,7 @@ function render(data) {
   }
 
   if (felgen) {
-    showEl("felgen-section");
+    showEl("felgen-section", true);
     setText("f-marke",   [felgen.marke, felgen.modell].filter(Boolean).join(" / "));
     setText("f-grosse",  felgen.grosse);
     setText("f-pcd",     felgen.pcd);
@@ -517,7 +507,7 @@ function render(data) {
     setText("f-dia",     felgen.dia  ? `${felgen.dia} mm` : "—");
     setText("f-loecher", felgen.loecher ? `${felgen.loecher}x` : "—");
   } else if (tire?.felgen_raw) {
-    showEl("felgen-section");
+    showEl("felgen-section", true);
     $("f-marke").textContent = tire.felgen_raw;
     const pcdM  = tire.felgen_raw.match(/(\d+x[\d.]+)/i);
     const etM   = tire.felgen_raw.match(/(?:ET|IS)\s*(\d+)/i);
@@ -531,11 +521,8 @@ function render(data) {
   if (comment) { $("comment").textContent=comment; $("comment").classList.add("visible"); }
 
   show("card");
-
-  // ✅ NEW: підтягуємо сумісні авто паралельно
   loadCompatibleCars(data);
 
-  // Панель внизу
   if (isAdmin && isTelegram()) {
     showEditPanel(tire || felgen);
   } else if (!isTelegram()) {
@@ -546,15 +533,19 @@ function render(data) {
 // ── Кнопка «Відкрити в Telegram» ─────────────────────────────────────────────
 function showTelegramButton(id) {
   const btn = $("tg-open-btn");
-  btn.href = `https://t.me/${BOT_USERNAME}?startapp=${String(id).padStart(4,"0")}`;
-  showEl("tg-open-btn");
+  if(btn) {
+    btn.href = `https://t.me/${BOT_USERNAME}?startapp=${String(id).padStart(4,"0")}`;
+    btn.style.display = "flex";
+  }
 }
 
 // ── Панель редагування ────────────────────────────────────────────────────────
 function showEditPanel(item) {
   const statusEl = $("edit-status");
   const status   = item?.status || "Доступно";
-  [...statusEl.options].forEach(o => o.selected = o.value === status);
+  if(statusEl) {
+    [...statusEl.options].forEach(o => o.selected = o.value === status);
+  }
   $("edit-preis").value   = item?.preis   || "";
   $("edit-comment").value = item?.comment || "";
   $("edit-panel").classList.add("visible");
@@ -582,10 +573,20 @@ async function save(overrides = {}) {
     });
     if (res.ok) {
       const badge = $("badge");
-      badge.textContent = body.status;
-      badge.className   = "badge" + (/прода|sold/i.test(body.status) ? " sold" : "");
+      const isSold = /прода|sold/i.test(body.status);
+      badge.textContent = isSold ? "Продано" : body.status;
+      
+      if(isSold) {
+        badge.classList.add("sold");
+      } else {
+        badge.classList.remove("sold");
+      }
+      
       setText("price", body.preis || "—");
-      if (body.comment) { $("comment").textContent=body.comment; $("comment").classList.add("visible"); }
+      if (body.comment) { 
+        $("comment").textContent=body.comment; 
+        $("comment").classList.add("visible"); 
+      }
       if (tgApp) tgApp.showAlert("✅ Збережено");
     } else {
       if (tgApp) tgApp.showAlert("❌ Помилка збереження");
