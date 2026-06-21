@@ -162,6 +162,31 @@ module.exports = async function handler(req, res) {
     const auth   = getAuth();
     const sheets = google.sheets({ version: "v4", auth });
 
+    // ── DEBUG РЕЖИМ: ?debug=1 — показує сирі рядки з обох аркушів ─────────
+    // Видали цей блок після того, як знайдеш правильні колонки.
+    if (req.query.debug === "1") {
+      const [tRows, fRows] = await Promise.all([
+        getRows(sheets, TIRES_SHEET,  "A1:T5"),
+        getRows(sheets, FELGEN_SHEET, "A1:O5"),
+      ]);
+      return res.status(200).json({
+        debug: true,
+        searched_id: numericId,
+        tires_sheet: {
+          name: TIRES_SHEET,
+          row1_header: tRows[0] || null,
+          row2: tRows[1] || null,
+          row3: tRows[2] || null,
+        },
+        felgen_sheet: {
+          name: FELGEN_SHEET,
+          row1: fRows[0] || null,
+          row2_header: fRows[1] || null,
+          row3: fRows[2] || null,
+        },
+      });
+    }
+
     const [tireRow, felgenRow] = await Promise.all([
       findRow(sheets, TIRES_SHEET,  "A:T", COL.ID  - 1, numericId, 1),
       findRow(sheets, FELGEN_SHEET, "A:O", FCOL.ID - 1, numericId, 2),
