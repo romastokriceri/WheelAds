@@ -1,615 +1,256 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Car Wheel — Склад</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg:      #0d0d0d; --surface: #161616; --border: #2a2a2a;
-    --accent:  #e8ff00; --text: #f0f0f0;   --muted: #666;
-    --red:     #ff3b3b; --green: #00e676;  --blue: #4fc3f7;
-    --orange:  #ff9800;
+/**
+ * /api/tire  — GET
+ * Читає дані шини/диска з Google Sheets.
+ *
+ * Колонки аркуша Tires (заголовки в рядку 1, A — порожня службова колонка):
+ *   A  (порожня)       B  Status        C  ID            D  Marke
+ *   E  Modell          F  Größe         G  Zoll          H  Dot
+ *   I  Saison          J  Set           K  Durchschnitt  L  Belastungsindex
+ *   M  Geschwindigkeitsindex            N  Felgen        O  Coment
+ *   P  Einkaufspreis   Q  Preis         R  Client         S  Verkaufsdatum
+ *   T  Einkaufsdatum
+ *
+ * Колонки аркуша Диски (заголовки в рядку 2, A — порожня службова колонка):
+ *   A  (порожня)       B  Status        C  ID            D  Reifen(Marke)
+ *   E  Modell          F  Set           G  Einkaufspreis  H  Preis
+ *   I  Größe           J  PCD           K  ET             L  Zoll
+ *   M  DIA             N  Löcher        O  Einkaufsdatum
+ */
+
+const { google } = require("googleapis");
+const crypto      = require("crypto");
+
+const SHEET_ID     = process.env.GOOGLE_SHEETS_ID;
+const BOT_TOKEN    = process.env.TELEGRAM_BOT_TOKEN;
+const TIRES_SHEET  = "Tires";
+const PHOTOS_SHEET = "Photos";
+const FELGEN_SHEET = "Диски";
+
+const ALLOWED_USER_IDS = (process.env.ALLOWED_USER_IDS || "")
+  .split(",").map(s => parseInt(s.trim())).filter(Boolean);
+
+// ── Колонки Tires (1-based, A=1) ─────────────────────────────────────────────
+const COL = {
+  STATUS:    2,   // B
+  ID:        3,   // C
+  MARKE:     4,   // D
+  MODELL:    5,   // E
+  GROSSE:    6,   // F — Größe (205/55R16)
+  ZOLL:      7,   // G — окрема колонка з дюймами
+  DOT:       8,   // H
+  SAISON:    9,   // I
+  SET:      10,   // J
+  PROFIL:   11,   // K — Durchschnitt (залишковий профіль, мм)
+  BELASTUNG: 12,  // L — Belastungsindex
+  GESCHW:   13,   // M — Geschwindigkeitsindex
+  FELGEN:   14,   // N — рядок з параметрами дисків (якщо комплект)
+  COMMENT:  15,   // O — Coment
+  EINKAUF:  16,   // P — Einkaufspreis (закупочна, не показуємо)
+  PREIS:    17,   // Q — Preis (ціна продажу)
+  CLIENT:   18,   // R
+  VERKAUF:  19,   // S — Verkaufsdatum
+  EINKAUF_DATE: 20, // T
+};
+
+// ── Колонки Диски (1-based) ───────────────────────────────────────────────────
+const FCOL = {
+  STATUS:  2,   // B
+  ID:      3,   // C
+  MARKE:   4,   // D — стовпець "Reifen" (бренд диска)
+  MODELL:  5,   // E
+  SET:     6,   // F
+  EINKAUF: 7,   // G — Einkaufspreis
+  PREIS:   8,   // H
+  GROSSE:  9,   // I
+  PCD:    10,   // J
+  ET:     11,   // K
+  ZOLL:   12,   // L
+  DIA:    13,   // M
+  LOECHER: 14,  // N — Löcher
+  // PHOTO_FOLDER: невідомо — за дебаг-діапазоном A:O колонка O = "Einkaufsdatum",
+  // не Photo_Folder. Якщо потрібне фото з цього аркуша — розширити діапазон
+  // запиту (наприклад "A:S") і перевірити debug=1 ще раз.
+};
+
+// ── Верифікація Telegram initData ────────────────────────────────────────────
+function verifyInitData(initDataRaw) {
+  try {
+    const params = new URLSearchParams(initDataRaw);
+    const hash   = params.get("hash");
+    if (!hash) return null;
+    params.delete("hash");
+
+    const dataCheckString = [...params.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${v}`)
+      .join("\n");
+
+    const secretKey = crypto.createHmac("sha256", "WebAppData")
+      .update(BOT_TOKEN).digest();
+    const expected  = crypto.createHmac("sha256", secretKey)
+      .update(dataCheckString).digest("hex");
+
+    if (hash !== expected) return null;
+
+    const authDate = parseInt(params.get("auth_date") || "0");
+    if (Date.now() / 1000 - authDate > 600) return null;
+
+    return JSON.parse(params.get("user") || "null");
+  } catch {
+    return null;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; }
+}
 
-  header { width:100%; max-width:480px; padding:20px 24px 0; display:flex; align-items:center; justify-content:space-between; }
-  .logo-text { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; color:var(--accent); }
-  .logo-sub  { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
-
-  .card { width:100%; max-width:480px; padding:20px 24px 100px; display:flex; flex-direction:column; animation:fadeUp .4s ease both; }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-
-  /* Photo */
-  .photo-wrap { width:100%; aspect-ratio:4/3; background:var(--surface); border-radius:16px; overflow:hidden; position:relative; margin-bottom:20px; }
-  .photo-wrap img { width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .4s; }
-  .photo-wrap img.loaded { opacity:1; }
-  .photo-placeholder { position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted);font-size:13px; }
-  .photo-placeholder svg { opacity:.3; }
-
-  /* Status */
-  .status-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
-  .badge { font-size:11px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green);border:1px solid color-mix(in srgb,var(--green) 30%,transparent); }
-  .badge.sold { background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red);border-color:color-mix(in srgb,var(--red) 30%,transparent); }
-  .tire-id { font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:var(--muted); }
-
-  /* Type chip */
-  .type-chip { display:inline-block;font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:14px;color:var(--blue);background:color-mix(in srgb,var(--blue) 15%,transparent);border:1px solid color-mix(in srgb,var(--blue) 25%,transparent); }
-  .type-chip.felgen { color:#ce93d8;background:color-mix(in srgb,#ce93d8 15%,transparent);border-color:color-mix(in srgb,#ce93d8 25%,transparent); }
-  .type-chip.komplettraeder { color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:color-mix(in srgb,var(--accent) 25%,transparent); }
-
-  .tire-name { font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:1;letter-spacing:1px;margin-bottom:4px; }
-  .tire-size { font-size:18px;color:var(--accent);font-weight:500;margin-bottom:20px;letter-spacing:.5px; }
-
-  /* Price */
-  .price-block { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px; }
-  .price-label { font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px; }
-  .price-value { font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:1px;color:var(--accent); }
-  .set-count   { font-size:13px;color:var(--muted);margin-top:2px; }
-
-  /* Specs */
-  .section-header { font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:4px 0 10px; }
-  .specs { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px; }
-  .spec  { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px; }
-  .spec-label { font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px; }
-  .spec-value { font-size:16px;font-weight:500; }
-
-  /* Felgen block */
-  .felgen-block { background:var(--surface);border:1px solid #333;border-radius:14px;padding:16px;margin-bottom:16px; }
-  .felgen-block .section-header { margin-top:0; }
-  .felgen-specs { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
-  .felgen-specs .spec { border-color:#2f2f2f; }
-
-  /* Comment */
-  .comment-block { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-size:14px;color:#aaa;line-height:1.5;display:none;margin-bottom:16px; }
-  .comment-block.visible { display:block; }
-
-  /* ── Сумісні авто ── */
-  .cars-group { margin-bottom: 12px; }
-  .cars-make {
-    font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 6px;
-  }
-  .cars-models { display: flex; flex-wrap: wrap; gap: 6px; }
-  .car-chip {
-    font-size: 12px; padding: 4px 10px; border-radius: 20px;
-    background: var(--surface); border: 1px solid var(--border); color: var(--text);
-    white-space: nowrap;
-  }
-  .cars-pcd-label {
-    font-size: 11px; color: var(--muted); margin-bottom: 10px;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .cars-pcd-label span {
-    font-family: 'Bebas Neue', sans-serif; font-size: 13px;
-    color: var(--accent); letter-spacing: 1px;
-  }
-
-  /* ── Fitment rows ── */
-  .fitment-row {
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 28px 1fr;
-    gap: 2px 8px;
-    align-items: start;
-  }
-  .fitment-row:last-child { border-bottom: none; }
-  .fitment-status { font-size: 16px; padding-top: 1px; }
-  .fitment-model  { font-size: 14px; font-weight: 500; line-height: 1.3; }
-  .fitment-reasons {
-    grid-column: 2;
-    font-size: 11px; color: var(--orange); line-height: 1.4; margin-top: 2px;
-  }
-  .fitment-notes {
-    grid-column: 2;
-    font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 2px;
-  }
-  
-  /* ── Прихований лінк «адмін-доступ» ── */
-  .tg-open-btn {
-    display:none; align-items:center; justify-content:center; gap:6px;
-    width:100%; padding:16px 0 8px;
-    color:var(--muted); font-size:11px; font-weight:400;
-    text-decoration:none; opacity:.55; transition:opacity .2s;
-  }
-  .tg-open-btn:active { opacity:.85; }
-  .tg-open-btn svg { flex-shrink:0; width:13px; height:13px; }
-
-  /* ── Панель редагування ── */
-  .edit-panel {
-    position:fixed; bottom:0; left:0; right:0;
-    background:var(--surface); border-top:1px solid var(--border);
-    padding:16px 24px max(16px, env(safe-area-inset-bottom));
-    display:none; flex-direction:column; gap:10px; z-index:100;
-  }
-  .edit-panel.visible { display:flex; }
-  .edit-panel-title { font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px; }
-  .edit-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .edit-field { display:flex;flex-direction:column;gap:4px; }
-  .edit-field label { font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px; }
-  .edit-field input, .edit-field select, .edit-field textarea {
-    background:#1e1e1e; border:1px solid var(--border); border-radius:8px;
-    color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px;
-    padding:8px 10px; outline:none; transition:border-color .2s;
-  }
-  .edit-field input:focus, .edit-field select:focus, .edit-field textarea:focus { border-color:var(--accent); }
-  .edit-field textarea { resize:none; height:56px; }
-  .edit-field select option { background:#1e1e1e; }
-  .edit-actions { display:grid; grid-template-columns:1fr 2fr; gap:8px; margin-top:2px; }
-  .btn { padding:12px; border-radius:10px; border:none; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:opacity .15s; }
-  .btn:active { opacity:.7; }
-  .btn-ghost  { background:var(--border); color:var(--muted); }
-  .btn-accent { background:var(--accent); color:#000; }
-  .btn-danger { background:color-mix(in srgb,var(--red) 15%,transparent); color:var(--red); border:1px solid color-mix(in srgb,var(--red) 25%,transparent); }
-
-  /* Saving overlay */
-  .saving-overlay { position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200;flex-direction:column;gap:12px; }
-  .saving-overlay.visible { display:flex; }
-  .saving-overlay p { font-size:14px;color:var(--muted); }
-
-  /* States */
-  .state { display:none;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;text-align:center;padding:40px; }
-  .state.active { display:flex; }
-  .state-icon { font-size:48px; }
-  .state h2 { font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px; }
-  .state p  { font-size:14px;color:var(--muted); }
-
-  .spinner { width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite; }
-  @keyframes spin { to{transform:rotate(360deg)} }
-</style>
-</head>
-<body>
-
-<header>
-  <div>
-    <div class="logo-text">Car Wheel</div>
-    <div class="logo-sub">Склад · Шини та диски</div>
-  </div>
-</header>
-
-<div class="state active" id="state-loading">
-  <div class="spinner"></div>
-  <p>Завантаження...</p>
-</div>
-
-<div class="state" id="state-error">
-  <div class="state-icon">❌</div>
-  <h2>Товар не знайдено</h2>
-  <p id="error-msg">Перевір номер або зверніться до продавця.</p>
-</div>
-
-<div class="card" id="card" style="display:none">
-
-  <div class="photo-wrap" id="photo-wrap">
-    <div class="photo-placeholder" id="photo-placeholder">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
-        <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
-        <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
-      </svg>
-      Фото відсутнє
-    </div>
-  </div>
-
-  <div class="status-row">
-    <span class="badge" id="badge">Доступно</span>
-    <span class="tire-id" id="tire-id">#—</span>
-  </div>
-
-  <div class="type-chip" id="type-chip" style="display:none"></div>
-  <div class="tire-name" id="tire-name">—</div>
-  <div class="tire-size" id="tire-size" style="display:none"></div>
-
-  <div class="price-block">
-    <div>
-      <div class="price-label">Ціна</div>
-      <div class="price-value" id="price">—</div>
-    </div>
-    <div><div class="set-count" id="set-count"></div></div>
-  </div>
-
-  <div id="tire-section" style="display:none">
-    <div class="section-header">🛞 Шина</div>
-    <div class="specs">
-      <div class="spec"><div class="spec-label">DOT</div><div class="spec-value" id="dot">—</div></div>
-      <div class="spec"><div class="spec-label">Сезон</div><div class="spec-value" id="saison">—</div></div>
-      <div class="spec"><div class="spec-label">Профіль</div><div class="spec-value" id="profil">—</div></div>
-      <div class="spec"><div class="spec-label">LI / SI</div><div class="spec-value" id="li-si">—</div></div>
-    </div>
-  </div>
-
-  <div class="felgen-block" id="felgen-section" style="display:none">
-    <div class="section-header">⚙️ Диски</div>
-    <div class="felgen-specs">
-      <div class="spec"><div class="spec-label">Марка / KBA</div><div class="spec-value" id="f-marke">—</div></div>
-      <div class="spec"><div class="spec-label">Розмір</div><div class="spec-value" id="f-grosse">—</div></div>
-      <div class="spec"><div class="spec-label">PCD</div><div class="spec-value" id="f-pcd">—</div></div>
-      <div class="spec"><div class="spec-label">ET</div><div class="spec-value" id="f-et">—</div></div>
-      <div class="spec"><div class="spec-label">Zoll</div><div class="spec-value" id="f-zoll">—</div></div>
-      <div class="spec"><div class="spec-label">DIA</div><div class="spec-value" id="f-dia">—</div></div>
-      <div class="spec"><div class="spec-label">Отвори</div><div class="spec-value" id="f-loecher">—</div></div>
-    </div>
-  </div>
-
-  <div class="comment-block" id="comment"></div>
-
-  <div id="cars-section" style="display:none">
-    <div class="section-header" style="margin-top:8px">🚗 Сумісні авто</div>
-    <div id="cars-loading" style="display:none;text-align:center;padding:16px">
-      <div class="spinner" style="margin:0 auto"></div>
-    </div>
-    <div id="cars-list"></div>
-  </div>
-
-  <a href="#" class="tg-open-btn" id="tg-open-btn">
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.62.15-.15 2.7-2.48 2.75-2.7.01-.03.01-.14-.06-.2-.07-.06-.17-.04-.25-.02-.11.02-1.83 1.16-5.17 3.42-.49.34-.93.5-1.33.49-.44-.01-1.29-.25-1.92-.45-.77-.25-1.39-.39-1.34-.83.03-.23.35-.46.97-.71 3.82-1.66 6.37-2.75 7.64-3.28 3.64-1.53 4.4-1.8 4.89-1.8.11 0 .35.03.5.15.13.1.17.24.18.34-.01.06.01.21 0 .28z"/>
-    </svg>
-    Відкрити в Telegram
-  </a>
-
-</div>
-
-<div class="edit-panel" id="edit-panel">
-  <div class="edit-panel-title">✏️ Редагування</div>
-  <div class="edit-row">
-    <div class="edit-field">
-      <label>Статус</label>
-      <select id="edit-status">
-        <option value="Доступно">Доступно</option>
-        <option value="Зарезервовано">Зарезервовано</option>
-        <option value="Продано">Продано</option>
-      </select>
-    </div>
-    <div class="edit-field">
-      <label>Ціна (€)</label>
-      <input type="text" id="edit-preis" placeholder="140,00€">
-    </div>
-  </div>
-  <div class="edit-field">
-    <label>Коментар</label>
-    <textarea id="edit-comment" placeholder="Коментар..."></textarea>
-  </div>
-  <div class="edit-actions">
-    <button class="btn btn-danger" id="btn-sold">🔴 Продано</button>
-    <button class="btn btn-accent" id="btn-save">Зберегти</button>
-  </div>
-</div>
-
-<div class="saving-overlay" id="saving-overlay">
-  <div class="spinner"></div>
-  <p>Збереження...</p>
-</div>
-
-<script>
-// ── Конфіг ───────────────────────────────────────────────────────────────────
-const BOT_USERNAME = "YourCarWheelBot"; 
-const saisonIcon   = { sommer:"☀️", winter:"❄️", ganzjahres:"🌦" };
-const typeLabel    = { reifen:"Шини", felgen:"Диски", komplettraeder:"Комплект" };
-
-let currentData = null;
-let tgApp       = null;
-
-// ── Утиліти ──────────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-function setText(id, val) { const el=$(id); if(el) el.textContent = val||"—"; }
-function showEl(id, on=true) { const el=$(id); if(el) el.style.display = on?"":"none"; }
-
-function show(state) {
-  ["state-loading","state-error","card"].forEach(s => {
-    const el=$(s);
-    if(!el) return;
-    if(s==="card") el.style.display = s===state?"block":"none";
-    else el.classList.toggle("active", s===state);
+function getAuth() {
+  return new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
   });
 }
 
-// ── Telegram WebApp ───────────────────────────────────────────────────────────
-function isTelegram() { return !!(window.Telegram?.WebApp?.initData); }
-
-function loadTelegramSDK() {
-  return new Promise(resolve => {
-    if (window.Telegram) { resolve(); return; }
-    const s = document.createElement("script");
-    s.src = "https://telegram.org/js/telegram-web-app.js";
-    s.onload = resolve;
-    document.head.appendChild(s);
+async function getRows(sheets, sheet, range) {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${sheet}!${range}`,
   });
+  return res.data.values || [];
 }
 
-// ── Сумісні авто ─────────────────────────────────────────────────────────────
-async function loadCompatibleCars(data) {
-  const { type, tire, felgen } = data;
-  const pcd    = felgen?.pcd    || "";
-  const et     = felgen?.et     || "";
-  const zoll   = felgen?.zoll   || tire?.zoll || "";
-  const dia    = felgen?.dia    || "";
-  const grosse = tire?.grosse   || felgen?.grosse || "";
+async function findRow(sheets, sheet, range, colIdx, numericId, headerRows = 1) {
+  const rows = await getRows(sheets, sheet, range);
+  for (const row of rows.slice(headerRows)) {
+    const val = (row[colIdx] || "").toString().trim().replace(/^0+/, "") || "0";
+    if (val === numericId) return row;
+  }
+  return null;
+}
 
-  if (!pcd && !grosse) return;
+// Photos — тип "quick" (перше фото швидкого скану)
+async function getQuickPhoto(sheets, numericId) {
+  try {
+    const rows = await getRows(sheets, PHOTOS_SHEET, "A:F");
+    for (const row of rows.slice(1)) {
+      const rowId = (row[0] || "").toString().trim().replace(/^0+/, "") || "0";
+      const type  = (row[1] || "").toString().trim().toLowerCase();
+      const url   = (row[2] || "").toString().trim();
+      if (rowId === numericId && type === "quick" && url) return url;
+    }
+  } catch { /* no photo */ }
+  return null;
+}
 
-  showEl("cars-section", true);
-  showEl("cars-loading", true);
-  $("cars-list").innerHTML        = "";
+function detectType(tire, felgen) {
+  const hasTire   = !!(tire?.marke || tire?.profil_mm || tire?.dot);
+  const hasFelgen = !!(felgen || tire?.felgen_raw);
+  if (hasTire && hasFelgen) return "komplettraeder";
+  if (!hasTire && hasFelgen) return "felgen";
+  return "reifen";
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
+module.exports = async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+  const { id, initData } = req.query;
+  if (!id) return res.status(400).json({ error: "Missing id" });
+
+  // Визначаємо чи адмін
+  let isAdmin = false;
+  if (initData) {
+    const user = verifyInitData(initData);
+    if (user && ALLOWED_USER_IDS.includes(user.id)) isAdmin = true;
+  }
+
+  const numericId = String(parseInt(id, 10));
 
   try {
-    const qs  = new URLSearchParams({ type, pcd, et, zoll, dia, grosse });
-    const res = await fetch(`/api/cars?${qs}`);
-    if (!res.ok) throw new Error("API error");
+    const auth   = getAuth();
+    const sheets = google.sheets({ version: "v4", auth });
 
-    const { fitment = [], bySize = [] } = await res.json();
-    const list = $("cars-list");
-
-    if (!fitment.length && !bySize.length) {
-      list.innerHTML = `<p style="font-size:13px;color:var(--muted);padding-bottom:8px">Дані сумісності не знайдено.</p>`;
-      return;
+    // ── DEBUG РЕЖИМ: ?debug=1 — показує сирі рядки з обох аркушів ─────────
+    // Видали цей блок після того, як знайдеш правильні колонки.
+    if (req.query.debug === "1") {
+      const [tRows, fRows] = await Promise.all([
+        getRows(sheets, TIRES_SHEET,  "A1:T5"),
+        getRows(sheets, FELGEN_SHEET, "A1:O5"),
+      ]);
+      return res.status(200).json({
+        debug: true,
+        searched_id: numericId,
+        tires_sheet: {
+          name: TIRES_SHEET,
+          row1_header: tRows[0] || null,
+          row2: tRows[1] || null,
+          row3: tRows[2] || null,
+        },
+        felgen_sheet: {
+          name: FELGEN_SHEET,
+          row1: fRows[0] || null,
+          row2_header: fRows[1] || null,
+          row3: fRows[2] || null,
+        },
+      });
     }
 
-    if (fitment.length) {
-      const label = document.createElement("div");
-      label.className = "cars-pcd-label";
-      label.innerHTML = `Перевірка диска <span>${pcd} ET${et} R${zoll}</span>`;
-      list.appendChild(label);
-      renderFitment(list, fitment);
+    const [tireRow, felgenRow] = await Promise.all([
+      findRow(sheets, TIRES_SHEET,  "A:T", COL.ID  - 1, numericId, 1),
+      findRow(sheets, FELGEN_SHEET, "A:O", FCOL.ID - 1, numericId, 2),
+    ]);
+
+    if (!tireRow && !felgenRow) {
+      return res.status(404).json({ error: "Not found" });
     }
 
-    if (bySize.length) {
-      if (fitment.length) {
-        const hr = document.createElement("div");
-        hr.style.cssText = "height:1px;background:var(--border);margin:14px 0 12px";
-        list.appendChild(hr);
-      }
-      const lbl = document.createElement("div");
-      lbl.className = "cars-pcd-label";
-      lbl.innerHTML = `Шини розміру <span>${grosse}</span> підходять для`;
-      list.appendChild(lbl);
+    const gt = col => tireRow   ? (tireRow  [col - 1] || "").toString().trim() : "";
+    const gf = col => felgenRow ? (felgenRow[col - 1] || "").toString().trim() : "";
 
-      const wrap = document.createElement("div");
-      wrap.className = "cars-models";
-      wrap.innerHTML = bySize.map(m => `<span class="car-chip">${m}</span>`).join("");
-      list.appendChild(wrap);
-    }
+    const tire = tireRow ? {
+      id:          gt(COL.ID),
+      status:      gt(COL.STATUS),
+      marke:       gt(COL.MARKE),
+      modell:      gt(COL.MODELL),
+      grosse:      gt(COL.GROSSE),
+      zoll:        gt(COL.ZOLL),       // ← нова колонка F
+      dot:         gt(COL.DOT),
+      saison:      gt(COL.SAISON),
+      set:         gt(COL.SET),
+      profil_mm:   gt(COL.PROFIL),
+      belastung:   gt(COL.BELASTUNG),
+      geschw:      gt(COL.GESCHW),
+      felgen_raw:  gt(COL.FELGEN),
+      comment:     gt(COL.COMMENT),
+      preis:       gt(COL.PREIS),      // ← P, не O
+    } : null;
 
-  } catch(e) {
-    console.error("cars API:", e);
-    showEl("cars-section", false);
-  } finally {
-    showEl("cars-loading", false);
-  }
-}
+    const felgen = felgenRow ? {
+      id:      gf(FCOL.ID),
+      status:  gf(FCOL.STATUS),
+      marke:   gf(FCOL.MARKE),
+      modell:  gf(FCOL.MODELL),
+      set:     gf(FCOL.SET),
+      preis:   gf(FCOL.PREIS),
+      grosse:  gf(FCOL.GROSSE),
+      pcd:     gf(FCOL.PCD),
+      et:      gf(FCOL.ET),
+      zoll:    gf(FCOL.ZOLL),
+      dia:     gf(FCOL.DIA),
+      loecher: gf(FCOL.LOECHER),
+    } : null;
 
-function renderFitment(container, results) {
-  const visible = results.filter(r => r.status !== "❌");
-  if (!visible.length) {
-    container.insertAdjacentHTML("beforeend",
-      `<p style="font-size:13px;color:var(--muted);padding-bottom:8px">Жодного збігу за PCD у базі.</p>`);
-    return;
-  }
+    const resolvedId = (tire?.id || felgen?.id || numericId).replace(/^0+/, "") || numericId;
+    const photo      = await getQuickPhoto(sheets, resolvedId);
 
-  for (const r of visible) {
-    const div  = document.createElement("div");
-    div.className = "fitment-row";
-
-    const color = r.status === "✅" ? "var(--green)" : "var(--orange)";
-    let inner = `
-      <span class="fitment-status" style="color:${color}">${r.status}</span>
-      <span class="fitment-model">${r.model}</span>`;
-
-    if (r.reasons?.length) {
-      inner += `<div class="fitment-reasons">${r.reasons.join(" · ")}</div>`;
-    }
-    if (r.notes) {
-      inner += `<div class="fitment-notes">${r.notes}</div>`;
-    }
-
-    div.innerHTML = inner;
-    container.appendChild(div);
-  }
-
-  const hidden = results.length - visible.length;
-  if (hidden > 0) {
-    container.insertAdjacentHTML("beforeend",
-      `<p style="font-size:11px;color:var(--muted);margin-top:6px">+ ${hidden} авто не підходять (інший PCD)</p>`);
-  }
-}
-
-// ── Завантаження даних ────────────────────────────────────────────────────────
-async function load() {
-  const params = new URLSearchParams(location.search);
-  const rawId  = location.hash.replace("#", "").trim()
-              || params.get("id") || params.get("tire_id") || "";
-  if (!rawId) { show("state-error"); $("error-msg").textContent="ID не вказано."; return; }
-
-  await loadTelegramSDK();
-  tgApp = window.Telegram?.WebApp || null;
-  if (tgApp) tgApp.ready();
-
-  const initData = tgApp?.initData || "";
-  const apiUrl   = `/api/tire?id=${encodeURIComponent(rawId)}`
-    + (initData ? `&initData=${encodeURIComponent(initData)}` : "");
-
-  try {
-    const res  = await fetch(apiUrl);
-    if (!res.ok) { show("state-error"); return; }
-    const data = await res.json();
-    currentData = data;
-    render(data);
-  } catch(e) {
-    console.error(e);
-    show("state-error");
-  }
-}
-
-// ── Рендер картки ─────────────────────────────────────────────────────────────
-function render(data) {
-  const { type, id, photo, tire, felgen, isAdmin } = data;
-
-  if (photo) {
-    const img = document.createElement("img");
-    img.src = photo; img.alt = "Фото";
-    img.onload = () => img.classList.add("loaded");
-    $("photo-placeholder").style.display = "none";
-    $("photo-wrap").appendChild(img);
-  }
-
-  const status = tire?.status || felgen?.status || "Доступно";
-  const sold   = /прода|sold/i.test(status);
-  const badge  = $("badge");
-  badge.textContent = sold ? "Продано" : status;
-  if (sold) {
-    badge.classList.add("sold");
-  } else {
-    badge.classList.remove("sold");
-  }
-
-  setText("tire-id", `#${String(id).padStart(4,"0")}`);
-
-  const chip = $("type-chip");
-  if (type !== "reifen") {
-    chip.textContent = typeLabel[type] || type;
-    chip.className = `type-chip ${type}`;
-    showEl("type-chip", true);
-  }
-
-  if (type === "felgen") {
-    setText("tire-name", [felgen?.marke, felgen?.modell].filter(Boolean).join(" — ") || "Диск");
-    const sz = [felgen?.grosse, felgen?.pcd && `PCD ${felgen.pcd}`].filter(Boolean).join(" · ");
-    if (sz) { setText("tire-size", sz); showEl("tire-size", true); }
-  } else {
-    setText("tire-name", [tire?.marke, tire?.modell].filter(Boolean).join(" ") || "Шина");
-    if (tire?.grosse) { setText("tire-size", tire.grosse); showEl("tire-size", true); }
-  }
-
-  setText("price", tire?.preis || felgen?.preis || "—");
-  const setVal = tire?.set || felgen?.set;
-  if (setVal) $("set-count").textContent = `${setVal} шт. у сеті`;
-
-  if (tire && type !== "felgen") {
-    showEl("tire-section", true);
-    setText("dot", tire.dot ? tire.dot.slice(-4) : "—");
-    const s = (tire.saison||"").toLowerCase();
-    setText("saison", (saisonIcon[s]||"") + " " + (tire.saison||"—"));
-    setText("profil", tire.profil_mm ? `${tire.profil_mm} мм` : "—");
-    setText("li-si", [tire.belastung, tire.geschw].filter(Boolean).join(" / ") || "—");
-  }
-
-  if (felgen) {
-    showEl("felgen-section", true);
-    setText("f-marke",   [felgen.marke, felgen.modell].filter(Boolean).join(" / "));
-    setText("f-grosse",  felgen.grosse);
-    setText("f-pcd",     felgen.pcd);
-    setText("f-et",      felgen.et   ? `ET ${felgen.et}`  : "—");
-    setText("f-zoll",    felgen.zoll ? `${felgen.zoll}"`  : "—");
-    setText("f-dia",     felgen.dia  ? `${felgen.dia} mm` : "—");
-    setText("f-loecher", felgen.loecher ? `${felgen.loecher}x` : "—");
-  } else if (tire?.felgen_raw) {
-    showEl("felgen-section", true);
-    $("f-marke").textContent = tire.felgen_raw;
-    const pcdM  = tire.felgen_raw.match(/(\d+x[\d.]+)/i);
-    const etM   = tire.felgen_raw.match(/(?:ET|IS)\s*(\d+)/i);
-    const zollM = tire.felgen_raw.match(/(\d{2})\s*(?:Zoll|")/i);
-    if (pcdM)  setText("f-pcd",  pcdM[1]);
-    if (etM)   setText("f-et",   `ET ${etM[1]}`);
-    if (zollM) setText("f-zoll", `${zollM[1]}"`);
-  }
-
-  const comment = tire?.comment || felgen?.comment || "";
-  if (comment) { $("comment").textContent=comment; $("comment").classList.add("visible"); }
-
-  show("card");
-  loadCompatibleCars(data);
-
-  if (isAdmin && isTelegram()) {
-    showEditPanel(tire || felgen);
-  } else if (!isTelegram()) {
-    showTelegramButton(id);
-  }
-}
-
-// ── Кнопка «Відкрити в Telegram» ─────────────────────────────────────────────
-function showTelegramButton(id) {
-  const btn = $("tg-open-btn");
-  if(btn) {
-    btn.href = `https://t.me/${BOT_USERNAME}?startapp=${String(id).padStart(4,"0")}`;
-    btn.style.display = "flex";
-  }
-}
-
-// ── Панель редагування ────────────────────────────────────────────────────────
-function showEditPanel(item) {
-  const statusEl = $("edit-status");
-  const status   = item?.status || "Доступно";
-  if(statusEl) {
-    [...statusEl.options].forEach(o => o.selected = o.value === status);
-  }
-  $("edit-preis").value   = item?.preis   || "";
-  $("edit-comment").value = item?.comment || "";
-  $("edit-panel").classList.add("visible");
-  if (tgApp?.MainButton) tgApp.MainButton.hide();
-}
-
-// ── Збереження ────────────────────────────────────────────────────────────────
-async function save(overrides = {}) {
-  if (!currentData) return;
-  const body = {
-    id:       currentData.id,
-    type:     currentData.type,
-    status:   $("edit-status").value,
-    preis:    $("edit-preis").value.trim(),
-    comment:  $("edit-comment").value.trim(),
-    initData: tgApp?.initData || "",
-    ...overrides,
-  };
-  $("saving-overlay").classList.add("visible");
-  try {
-    const res = await fetch("/api/tire-edit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+    return res.status(200).json({
+      type: detectType(tire, felgen),
+      id:   resolvedId,
+      photo,
+      tire,
+      felgen,
+      isAdmin,
     });
-    if (res.ok) {
-      const badge = $("badge");
-      const isSold = /прода|sold/i.test(body.status);
-      badge.textContent = isSold ? "Продано" : body.status;
-      
-      if(isSold) {
-        badge.classList.add("sold");
-      } else {
-        badge.classList.remove("sold");
-      }
-      
-      setText("price", body.preis || "—");
-      if (body.comment) { 
-        $("comment").textContent=body.comment; 
-        $("comment").classList.add("visible"); 
-      }
-      if (tgApp) tgApp.showAlert("✅ Збережено");
-    } else {
-      if (tgApp) tgApp.showAlert("❌ Помилка збереження");
-    }
-  } catch(e) {
-    console.error(e);
-    if (tgApp) tgApp.showAlert("❌ Помилка мережі");
-  } finally {
-    $("saving-overlay").classList.remove("visible");
+
+  } catch (e) {
+    console.error("[tire]", e);
+    return res.status(500).json({ error: "Server error", detail: e.message });
   }
 }
-
-// ── Events ────────────────────────────────────────────────────────────────────
-$("btn-save").addEventListener("click", () => save());
-$("btn-sold").addEventListener("click", () => {
-  if (tgApp) {
-    tgApp.showConfirm("Позначити як Продано?", ok => { if (ok) save({ status: "Продано" }); });
-  } else {
-    save({ status: "Продано" });
-  }
-});
-
-load();
-</script>
-</body>
-</html>
