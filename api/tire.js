@@ -2,16 +2,19 @@
  * /api/tire  — GET
  * Читає дані шини/диска з Google Sheets.
  *
- * Колонки аркуша Tires (A=1):
- *   A  Status          B  ID            C  Marke         D  Modell
- *   E  Größe           F  Zoll          G  Dot           H  Saison
- *   I  Set             J  Durchschnitt  K  Belastung     L  Geschw
- *   M  Felgen          N  Comment       O  Einkaufspreis P  Preis
- *   Q  Client          R  Verkaufsdatum S  Einkaufsdatum T  Photo_Folder
+ * Колонки аркуша Tires (заголовки в рядку 1, A — порожня службова колонка):
+ *   A  (порожня)       B  Status        C  ID            D  Marke
+ *   E  Modell          F  Größe         G  Zoll          H  Dot
+ *   I  Saison          J  Set           K  Durchschnitt  L  Belastungsindex
+ *   M  Geschwindigkeitsindex            N  Felgen        O  Coment
+ *   P  Einkaufspreis   Q  Preis         R  Client         S  Verkaufsdatum
+ *   T  Einkaufsdatum
  *
- * Колонки аркуша Диски (заголовки в рядку 2):
- *   A  Status  B  ID  C  Marke  D  Modell  E  Set  F  ?  G  ?  H  Preis
- *   I  Größe   J  PCD K  ET     L  Zoll    M  DIA  N  Locher  O  Photo_Folder
+ * Колонки аркуша Диски (заголовки в рядку 2, A — порожня службова колонка):
+ *   A  (порожня)       B  Status        C  ID            D  Reifen(Marke)
+ *   E  Modell          F  Set           G  Einkaufspreis  H  Preis
+ *   I  Größe           J  PCD           K  ET             L  Zoll
+ *   M  DIA             N  Löcher        O  Einkaufsdatum
  */
 
 const { google } = require("googleapis");
@@ -28,43 +31,45 @@ const ALLOWED_USER_IDS = (process.env.ALLOWED_USER_IDS || "")
 
 // ── Колонки Tires (1-based, A=1) ─────────────────────────────────────────────
 const COL = {
-  STATUS:    1,   // A
-  ID:        2,   // B
-  MARKE:     3,   // C
-  MODELL:    4,   // D
-  GROSSE:    5,   // E — Größe (205/55R16)
-  ZOLL:      6,   // F — окрема колонка з дюймами
-  DOT:       7,   // G
-  SAISON:    8,   // H
-  SET:       9,   // I
-  PROFIL:   10,   // J — Durchschnitt (залишковий профіль, мм)
-  BELASTUNG: 11,  // K — Belastungsindex
-  GESCHW:   12,   // L — Geschwindigkeitsindex
-  FELGEN:   13,   // M — рядок з параметрами дисків (якщо комплект)
-  COMMENT:  14,   // N
-  EINKAUF:  15,   // O — Einkaufspreis (закупочна, не показуємо)
-  PREIS:    16,   // P — Preis (ціна продажу)
-  CLIENT:   17,   // Q
-  VERKAUF:  18,   // R — Verkaufsdatum
-  EINKAUF_DATE: 19, // S
-  PHOTO_FOLDER: 20, // T
+  STATUS:    2,   // B
+  ID:        3,   // C
+  MARKE:     4,   // D
+  MODELL:    5,   // E
+  GROSSE:    6,   // F — Größe (205/55R16)
+  ZOLL:      7,   // G — окрема колонка з дюймами
+  DOT:       8,   // H
+  SAISON:    9,   // I
+  SET:      10,   // J
+  PROFIL:   11,   // K — Durchschnitt (залишковий профіль, мм)
+  BELASTUNG: 12,  // L — Belastungsindex
+  GESCHW:   13,   // M — Geschwindigkeitsindex
+  FELGEN:   14,   // N — рядок з параметрами дисків (якщо комплект)
+  COMMENT:  15,   // O — Coment
+  EINKAUF:  16,   // P — Einkaufspreis (закупочна, не показуємо)
+  PREIS:    17,   // Q — Preis (ціна продажу)
+  CLIENT:   18,   // R
+  VERKAUF:  19,   // S — Verkaufsdatum
+  EINKAUF_DATE: 20, // T
 };
 
 // ── Колонки Диски (1-based) ───────────────────────────────────────────────────
 const FCOL = {
-  STATUS:  1,   // A
-  ID:      2,   // B
-  MARKE:   3,   // C
-  MODELL:  4,   // D
-  SET:     5,   // E
+  STATUS:  2,   // B
+  ID:      3,   // C
+  MARKE:   4,   // D — стовпець "Reifen" (бренд диска)
+  MODELL:  5,   // E
+  SET:     6,   // F
+  EINKAUF: 7,   // G — Einkaufspreis
   PREIS:   8,   // H
   GROSSE:  9,   // I
   PCD:    10,   // J
   ET:     11,   // K
   ZOLL:   12,   // L
   DIA:    13,   // M
-  LOECHER: 14,  // N
-  PHOTO_FOLDER: 15, // O
+  LOECHER: 14,  // N — Löcher
+  // PHOTO_FOLDER: невідомо — за дебаг-діапазоном A:O колонка O = "Einkaufsdatum",
+  // не Photo_Folder. Якщо потрібне фото з цього аркуша — розширити діапазон
+  // запиту (наприклад "A:S") і перевірити debug=1 ще раз.
 };
 
 // ── Верифікація Telegram initData ────────────────────────────────────────────
