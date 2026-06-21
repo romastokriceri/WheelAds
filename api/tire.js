@@ -125,18 +125,47 @@ async function findRow(sheets, sheet, range, colIdx, numericId, headerRows = 1) 
   return null;
 }
 
-// Photos — тип "quick" (перше фото швидкого скану)
-async function getQuickPhoto(sheets, numericId) {
+// ── Фото з Cloudinary (через аркуш Photos) ────────────────────────────────────
+// Не прив'язуємось до позиції колонки (вона з часом зсувалась в реальних
+// даних) — натомість шукаємо в кожному рядку клітинку з Cloudinary URL і
+// витягуємо ID товару та тип/індекс фото напряму з самого URL.
+// URL завжди має вигляд:
+//   https://res.cloudinary.com/{cloud}/image/upload/v{version}/tires/{id4}/{id4}_{quick|N}.{ext}
+const CLOUDINARY_URL_RE = /\/tires\/(\d{4})\/\d+_(quick|\d+)\.\w+/i;
+
+async function getCloudinaryPhotos(sheets, numericId) {
+  const paddedId = numericId.padStart(4, "0");
+  const found = new Map(); // "quick" | "gallery:N" → url (останній запис перемагає, як і Cloudinary overwrite)
+
   try {
-    const rows = await getRows(sheets, PHOTOS_SHEET, "A:F");
-    for (const row of rows.slice(1)) {
-      const rowId = (row[0] || "").toString().trim().replace(/^0+/, "") || "0";
-      const type  = (row[1] || "").toString().trim().toLowerCase();
-      const url   = (row[2] || "").toString().trim();
-      if (rowId === numericId && type === "quick" && url) return url;
+    const rows = await getRows(sheets, PHOTOS_SHEET, "A:K");
+
+    for (const row of rows) {
+      const urlCell = row.find(
+        c => typeof c === "string" && c.startsWith("https://res.cloudinary.com/")
+      );
+      if (!urlCell) continue;
+
+      const m = urlCell.match(CLOUDINARY_URL_RE);
+      if (!m) continue;
+
+      const [, folderId, suffix] = m;
+      if (folderId !== paddedId) continue;
+
+      const key = suffix === "quick" ? "quick" : `gallery:${parseInt(suffix, 10)}`;
+      found.set(key, urlCell);
     }
-  } catch { /* no photo */ }
-  return null;
+  } catch (e) {
+    console.error("[photos]", e);
+  }
+
+  const quick   = found.get("quick") || null;
+  const gallery = [...found.entries()]
+    .filter(([k]) => k.startsWith("gallery:"))
+    .sort((a, b) => parseInt(a[0].split(":")[1], 10) - parseInt(b[0].split(":")[1], 10))
+    .map(([, url]) => url);
+
+  return quick ? [quick, ...gallery] : gallery;
 }
 
 function detectType(tire, felgen) {
@@ -167,13 +196,31 @@ module.exports = async function handler(req, res) {
     const auth   = getAuth();
     const sheets = google.sheets({ version: "v4", auth });
 
-    // ── DEBUG РЕЖИМ: ?debug=1 — показує сирі рядки з обох аркушів ─────────
+    // ── DEBUG РЕЖИМ: ?debug=1 — показує сирі рядки з усіх аркушів ──────────
     // Видали цей блок після того, як знайдеш правильні колонки.
     if (req.query.debug === "1") {
       const [tRows, fRows] = await Promise.all([
         getRows(sheets, TIRES_SHEET,  "A1:T5"),
         getRows(sheets, FELGEN_SHEET, "A1:O5"),
       ]);
+
+      // Окремо й безпечно — щоб помилка доступу до Photos не зламала весь debug
+      let photosInfo;
+      try {
+        const pRows = await getRows(sheets, PHOTOS_SHEET, "A1:K200");
+        const matching = pRows.filter(row =>
+          row.some(c => typeof c === "string" && c.includes(`/${numericId.padStart(4,"0")}/`))
+        );
+        photosInfo = {
+          sheet_name: PHOTOS_SHEET,
+          total_rows: pRows.length,
+          first_3_rows: pRows.slice(0, 3),
+          rows_matching_this_id: matching,
+        };
+      } catch (e) {
+        photosInfo = { sheet_name: PHOTOS_SHEET, error: e.message };
+      }
+
       return res.status(200).json({
         debug: true,
         searched_id: numericId,
@@ -189,6 +236,7 @@ module.exports = async function handler(req, res) {
           row2_header: fRows[1] || null,
           row3: fRows[2] || null,
         },
+        photos_sheet: photosInfo,
       });
     }
 
@@ -238,12 +286,13 @@ module.exports = async function handler(req, res) {
     } : null;
 
     const resolvedId = (tire?.id || felgen?.id || numericId).replace(/^0+/, "") || numericId;
-    const photo      = await getQuickPhoto(sheets, resolvedId);
+    const photos      = await getCloudinaryPhotos(sheets, resolvedId);
 
     return res.status(200).json({
       type: detectType(tire, felgen),
       id:   resolvedId,
-      photo,
+      photo:  photos[0] || null,  // перше фото — для поточної верстки
+      photos,                      // повний масив — для майбутньої галереї
       tire,
       felgen,
       isAdmin,
