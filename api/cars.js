@@ -18,8 +18,8 @@
  *   }
  */
 
-import { readFileSync } from "fs";
-import { join }         from "path";
+const { readFileSync } = require("fs");
+const { join }         = require("path");
 
 // Завантажуємо базу один раз (Vercel кешує між запитами)
 let _db = null;
@@ -117,7 +117,7 @@ function checkFitmentByTyreSize(grosse) {
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Cache-Control", "s-maxage=3600");
 
