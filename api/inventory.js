@@ -101,9 +101,16 @@ function buildPage(allItems, query) {
   const limit = Math.max(1, Math.min(PAGE_SIZE_MAX, Number.parseInt(query.limit, 10) || 24));
   const priorities = parsePriorities(query.p);
 
-  const filtered = allItems.filter((item) => {
+  const seasonOk = (item) => {
     const kind = seasonKind(item.season);
-    if (season !== "all" && item.type === "reifen" && kind !== season && kind !== "allseason") return false;
+    return !(season !== "all" && item.type === "reifen" && kind !== season && kind !== "allseason");
+  };
+  // Діаметри, які реально є в наявності для обраного сезону (для кнопок R на сайті).
+  const radii = [...new Set(allItems.filter(seasonOk).map(itemRadius).filter((r) => r !== null))]
+    .sort((a, b) => a - b);
+
+  const filtered = allItems.filter((item) => {
+    if (!seasonOk(item)) return false;
     if (radius !== null && itemRadius(item) !== radius) return false;
     if (!search) return true;
     const haystack = [item.id, item.brand, item.model, item.size, item.season,
@@ -149,6 +156,7 @@ function buildPage(allItems, query) {
   return {
     items,
     total: filtered.length,
+    radii,
     offset,
     nextOffset: nextOffset < filtered.length ? nextOffset : null,
     hasMore: nextOffset < filtered.length,

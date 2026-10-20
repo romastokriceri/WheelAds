@@ -1,6 +1,6 @@
 (() => {
-  const CACHE_PREFIX = "wheel-catalog-page-v3:";
-  const CACHE_INDEX = "wheel-catalog-cache-index-v3";
+  const CACHE_PREFIX = "wheel-catalog-page-v4:";
+  const CACHE_INDEX = "wheel-catalog-cache-index-v4";
   const INTEREST_KEY = "wheel-catalog-interest-v1";
   const PAGE_SIZE = 24;
   const MAX_CACHED_PAGES = 60;
@@ -10,6 +10,7 @@
   const countNode = document.getElementById("count");
   const updatedNode = document.getElementById("updated");
   const refreshNode = document.getElementById("refresh");
+  const radiusNav = document.getElementById("radius-filters");
 
   let seasonFilter = "all";
   let radiusFilter = null;
@@ -170,7 +171,21 @@
     updatedNode.textContent = `Обновлено ${new Date(payload.updatedAt).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })}`;
   }
 
+  // Кнопки R показуємо лише для діаметрів, які реально є в наявності.
+  function renderRadii(list) {
+    const radii = list.map(Number).filter(Number.isFinite);
+    const buttons = ['<button class="filter" data-radius="all" aria-pressed="' + (radiusFilter === null) + '">Любой</button>']
+      .concat(radii.map((r) => '<button class="filter" data-radius="' + r + '" aria-pressed="' + (radiusFilter === r) + '">R' + r + "</button>"));
+    radiusNav.innerHTML = buttons.join("");
+    // Обраного діаметра більше немає (наприклад, після зміни сезону) — скидаємо на «Любой».
+    if (radiusFilter !== null && !radii.includes(radiusFilter)) {
+      radiusFilter = null;
+      applyFilters();
+    }
+  }
+
   function applyPage(offset, payload) {
+    if (Array.isArray(payload.radii)) renderRadii(payload.radii);
     pages.set(offset, payload);
     total = Number(payload.total) || 0;
     if (offset === 0 || nextOffset === offset || nextOffset === null) nextOffset = payload.nextOffset;
@@ -279,18 +294,20 @@
     if (sentinel) observer.observe(sentinel);
   }
 
-  document.querySelectorAll(".filter").forEach((button) => button.addEventListener("click", () => {
-    if (button.dataset.season) {
-      seasonFilter = button.dataset.season;
-      document.querySelectorAll("[data-season]").forEach((entry) => entry.setAttribute("aria-pressed", String(entry === button)));
-      return applyFilters();
-    }
-    if (button.dataset.radius) {
-      radiusFilter = button.dataset.radius === "all" ? null : Number(button.dataset.radius);
-      document.querySelectorAll("[data-radius]").forEach((entry) => entry.setAttribute("aria-pressed", String(entry === button)));
-      return applyFilters({ learnRadius: radiusFilter });
-    }
+  document.querySelectorAll("[data-season]").forEach((button) => button.addEventListener("click", () => {
+    seasonFilter = button.dataset.season;
+    document.querySelectorAll("[data-season]").forEach((entry) => entry.setAttribute("aria-pressed", String(entry === button)));
+    applyFilters();
   }));
+
+  // Кнопки R створюються динамічно, тому слухаємо клік на контейнері.
+  radiusNav.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-radius]");
+    if (!button) return;
+    radiusFilter = button.dataset.radius === "all" ? null : Number(button.dataset.radius);
+    radiusNav.querySelectorAll("[data-radius]").forEach((entry) => entry.setAttribute("aria-pressed", String(entry === button)));
+    applyFilters({ learnRadius: radiusFilter });
+  });
 
   searchNode.addEventListener("input", () => {
     clearTimeout(debounceTimer);
