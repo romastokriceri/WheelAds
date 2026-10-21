@@ -1,6 +1,6 @@
 (() => {
-  const CACHE_PREFIX = "wheel-catalog-page-v4:";
-  const CACHE_INDEX = "wheel-catalog-cache-index-v4";
+  const CACHE_PREFIX = "wheel-catalog-page-v5:";
+  const CACHE_INDEX = "wheel-catalog-cache-index-v5";
   const INTEREST_KEY = "wheel-catalog-interest-v1";
   const PAGE_SIZE = 24;
   const MAX_CACHED_PAGES = 60;
@@ -137,6 +137,17 @@
     return result;
   }
 
+  function rimSize(item) {
+    const raw = String(item.size || "").trim().replace(/\s+/g, " ");
+    const inch = String(item.zoll || "").match(/\d{2}/)?.[0] ||
+      raw.match(/[x×]\s*(\d{2})\b/i)?.[1] || "";
+    const width = raw.match(/(\d{1,2}(?:[.,]\d+)?)\s*J/i)?.[1];
+    if (width && inch) return `${width.replace(".", ",")}J × ${inch}″`;
+    if (inch && (!raw || raw.replace(/\D/g, "") === inch)) return `${inch}″`;
+    if (inch) return `${raw} · ${inch}″`;
+    return raw;
+  }
+
   function itemCard(item) {
     const kind = seasonKind(item.season);
     const label = item.type === "felge" ? "Диски" : kind === "winter" ? "Зимние шины"
@@ -144,9 +155,13 @@
     const tagClass = kind === "winter" ? "winter" : kind === "summer" ? "summer" : "";
     const title = [item.brand, item.model].filter(Boolean).join(" ") || (item.type === "felge" ? "Колесные диски" : "Шины");
     const details = [item.season, item.dot ? `DOT ${item.dot}` : "", item.tread ? `Остаток ${item.tread} мм` : "",
-      item.quantity ? `${item.quantity} шт.` : "", item.type === "felge" && item.pcd ? `PCD ${item.pcd}` : "",
-      item.type === "felge" && item.et ? `ET ${item.et}` : ""].filter(Boolean);
-    return `<article class="card"><div class="top"><span class="tag ${tagClass}">${label}</span><span class="id">№ ${esc(item.id)}</span></div><h2 class="title">${esc(title)}</h2><div class="size">${esc(item.size || "")}</div><div class="details">${details.map((x) => `<span class="detail">${esc(x)}</span>`).join("")}</div><div class="bottom"><span class="price">${esc(item.price || "Цена по запросу")}</span><a class="open" href="/tire?id=${encodeURIComponent(item.id)}">Подробнее →</a></div></article>`;
+      item.quantity ? `${item.quantity} шт.` : "",
+      item.type === "felge" && item.pcd ? `PCD ${item.pcd.replace(/x/i, "×")}` : "",
+      item.type === "felge" && item.et ? `ET ${item.et}` : "",
+      item.type === "felge" && item.dia ? `DIA ${item.dia.replace(".", ",")} mm` : "",
+      item.type === "felge" && item.holes ? `${item.holes} отв.` : ""].filter(Boolean);
+    const size = item.type === "felge" ? rimSize(item) : (item.size || "");
+    return `<article class="card"><div class="top"><span class="tag ${tagClass}">${label}</span><span class="id">№ ${esc(item.id)}</span></div><h2 class="title">${esc(title)}</h2><div class="size">${esc(size)}</div><div class="details">${details.map((x) => `<span class="detail">${esc(x)}</span>`).join("")}</div><div class="bottom"><span class="price">${esc(item.price || "Цена по запросу")}</span><a class="open" href="/tire?id=${encodeURIComponent(item.id)}">Подробнее →</a></div></article>`;
   }
 
   function render() {

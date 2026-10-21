@@ -293,12 +293,13 @@
 
 <script>
 // ── Конфіг ───────────────────────────────────────────────────────────────────
-const BOT_USERNAME = "YourCarWheelBot"; // ← замінити на реальний username бота
+const BOT_USERNAME_FALLBACK = "YourCarWheelBot"; // ← замінити на реальний username бота
 const saisonIcon   = { sommer:"☀️", winter:"❄️", ganzjahres:"🌦" };
 const typeLabel    = { reifen:"Шини", felgen:"Диски", komplettraeder:"Комплект" };
 
 let currentData = null;
 let tgApp       = null;
+let BOT_USERNAME = BOT_USERNAME_FALLBACK;
 
 // ── Утиліти ──────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -438,6 +439,12 @@ async function load() {
   await loadTelegramSDK();
   tgApp = window.Telegram?.WebApp || null;
   if (tgApp) tgApp.ready();
+
+  // ✅ PATCH: отримуємо username бота з /api/config
+  try {
+    const cfg = await fetch("/api/config").then(r => r.ok ? r.json() : null).catch(() => null);
+    if (cfg?.botUsername) BOT_USERNAME = cfg.botUsername;
+  } catch (_) { /* fallback */ }
 
   const initData = tgApp?.initData || "";
   const apiUrl   = `/api/tire?id=${encodeURIComponent(rawId)}`
