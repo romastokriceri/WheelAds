@@ -9,25 +9,51 @@ function text(value) {
   return value == null ? "" : String(value).trim();
 }
 
-function isAvailable(value) {
-  const status = text(value).toLowerCase().replace(/\s+/g, " ");
-  return ["lager", "доступно", "available", "verfügbar", "verfuegbar"].includes(status);
+function normId(value) {
+  return text(value).padStart(4, "0");
 }
 
-function formatPrice(value) {
+// Статус рядка (дзеркало canonStatus з Apps Script Helper.gs).
+// Порожній статус вважаємо «Доступно».
+function statusKind(value) {
+  const status = text(value).toLowerCase().replace(/\s+/g, " ");
+  if (!status) return "lager";
+  if (["verkauft", "продано", "sold", "продан"].includes(status) || status.startsWith("прода")) return "sold";
+  if (
+    ["grau", "сірий", "сіре", "сірі", "серый", "серое", "серые", "gray", "grey", "резерв", "в резерві"].includes(status) ||
+    /с[іі]р|сер[ыи]|grau|gr[ae]y|резерв/.test(status)
+  ) return "grau";
+  if (
+    ["pending", "в очікуванні", "в очiкуваннi", "warten"].includes(status) ||
+    /очіку|очiку|ожида|pending|warten/.test(status)
+  ) return "pending";
+  return "other";
+}
+
+// На сайт іде все, крім «Продано» та «В очікуванні».
+function isShown(kind) {
+  return kind !== "sold" && kind !== "pending";
+}
+
+function priceNumber(value) {
   const raw = text(value);
-  if (!raw) return "";
+  if (!raw) return 0;
   let normalized = raw.replace(/[^\d,.-]/g, "");
   normalized = normalized.includes(",")
     ? normalized.replace(/\./g, "").replace(",", ".")
     : normalized.replace(/,/g, "");
   const numeric = Number(normalized);
-  return Number.isFinite(numeric) && numeric > 0 ? `${numeric.toFixed(2).replace(".", ",")} €` : raw;
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+}
+
+function formatPrice(value) {
+  const numeric = priceNumber(value);
+  return numeric > 0 ? `${numeric.toFixed(2).replace(".", ",")} €` : text(value);
 }
 
 function mapTire(row) {
   const id = text(row[2]);
-  if (!id || !isAvailable(row[1])) return null;
+  if (!id) return null;
   const size = text(row[5]);
   const rim = text(row[6]);
   return {
@@ -41,13 +67,82 @@ function mapTire(row) {
 
 function mapRim(row) {
   const id = text(row[2]);
-  if (!id || !isAvailable(row[1])) return null;
+  if (!id) return null;
   return {
     id: id.padStart(4, "0"), type: "felge", status: text(row[1]),
     brand: text(row[3]), model: text(row[4]), size: text(row[8]),
     season: "", quantity: text(row[5]), price: formatPrice(row[7]),
     pcd: text(row[9]), et: text(row[10]), zoll: text(row[11]), dia: text(row[12]),
   };
+}
+
+// У сірого лота в Coment (стовпець O) вказано ID аналога, до якого він «сірий».
+// Беремо перше число-ID з коментаря, яке реально існує в Tires (і не власний ID).
+// Числа перед «шт/stk/pcs/x» (кількість) ігноруємо; довші числа мають пріоритет.
+function findAnalogId(comment, ownId, byId) {
+  const tokens = text(comment).split(/[\s,;:|()[\]{}№#]+/).filter(Boolean);
+  const found = [];
+  tokens.forEach((token, i) => {
+    const digits = token.replace(/^id/i, "");
+    if (!/^\d{1,4}$/.test(digits)) return;
+    if (/^(шт|stk|st|pcs|x)\.?$/i.test(tokens[i + 1] || "")) return;
+    const id = normId(digits);
+    if (id !== ownId && byId.has(id)) found.push({ id, len: digits.length });
+  });
+  found.sort((a, b) => b.len - a.len);
+  return found.length ? found[0].id : null;
+}
+
+// Tires!A3:Q: B=Status, C=ID, O=Coment, Q=Preis.
+// Показуємо всі статуси, крім «Продано» і «В очікуванні». Сірий лот і його аналог
+// (за ID з Coment) — це дублі: з групи лишаємо лише найдорожчий.
+function pickTires(rows) {
+  const entries = [];
+  for (const row of rows) {
+    const id = text(row[2]);
+    if (id) entries.push({ row, id: normId(id), kind: statusKind(row[1]), ref: null });
+  }
+  const byId = new Map();
+  for (const entry of entries) if (!byId.has(entry.id)) byId.set(entry.id, entry);
+  for (const entry of entries) {
+    if (entry.kind === "grau") entry.ref = findAnalogId(entry.row[14], entry.id, byId);
+  }
+
+  // Ланцюжок сірий → сірий → ... → аналог. Корінь групи — ID кінцевого аналога.
+  const rootOf = (entry) => {
+    const seen = new Set([entry.id]);
+    let current = entry;
+    while (current.kind === "grau" && current.ref && !seen.has(current.ref)) {
+      seen.add(current.ref);
+      const next = byId.get(current.ref);
+      if (!next) return current.ref;
+      current = next;
+    }
+    return current.id;
+  };
+
+  const shown = entries.filter((entry) => isShown(entry.kind));
+  const groups = new Map();
+  for (const entry of shown) {
+    const key = entry.ref ? rootOf(entry) : entry.id;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(entry);
+  }
+
+  // Дорожчий перемагає; при рівній ціні перевага у не-сірого лота.
+  const beats = (a, b) => {
+    const pa = priceNumber(a.row[16]);
+    const pb = priceNumber(b.row[16]);
+    if (pa !== pb) return pa > pb;
+    return a.kind !== "grau" && b.kind === "grau";
+  };
+  const hidden = new Set();
+  for (const members of groups.values()) {
+    if (members.length < 2 || !members.some((member) => member.ref)) continue;
+    const winner = members.reduce((best, member) => (beats(member, best) ? member : best));
+    members.forEach((member) => { if (member !== winner) hidden.add(member); });
+  }
+  return shown.filter((entry) => !hidden.has(entry)).map((entry) => entry.row);
 }
 
 async function loadInventory() {
@@ -61,9 +156,10 @@ async function loadInventory() {
     sheets.spreadsheets.values.get({ spreadsheetId, range: "Tires!A3:Q" }),
     sheets.spreadsheets.values.get({ spreadsheetId, range: "'Диски'!A3:R" }),
   ]);
+  const rimRows = (rims.data.values || []).filter((row) => text(row[2]) && isShown(statusKind(row[1])));
   return [
-    ...(tires.data.values || []).map(mapTire).filter(Boolean),
-    ...(rims.data.values || []).map(mapRim).filter(Boolean),
+    ...pickTires(tires.data.values || []).map(mapTire).filter(Boolean),
+    ...rimRows.map(mapRim).filter(Boolean),
   ];
 }
 
