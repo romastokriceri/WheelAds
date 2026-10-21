@@ -25,6 +25,9 @@
   let debounceTimer;
   let activeRequest;
 
+  // ID, які вже були відмальовані — щоб не перезапускати анімацію появи.
+  const shownIds = new Set();
+
   const norm = (s) => String(s || "").toLocaleLowerCase("ru").replaceAll("ё", "е").trim();
   const esc = (s) => String(s || "").replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
@@ -148,7 +151,7 @@
     return raw;
   }
 
-  function itemCard(item) {
+  function itemCard(item, index) {
     const kind = seasonKind(item.season);
     const label = item.type === "felge" ? "Диски" : kind === "winter" ? "Зимние шины"
       : kind === "summer" ? "Летние шины" : kind === "allseason" ? "Всесезонные шины" : "Шины";
@@ -161,7 +164,14 @@
       item.type === "felge" && item.dia ? `DIA ${item.dia.replace(".", ",")} mm` : "",
       item.type === "felge" && item.holes ? `${item.holes} отв.` : ""].filter(Boolean);
     const size = item.type === "felge" ? rimSize(item) : (item.size || "");
-    return `<article class="card"><div class="top"><span class="tag ${tagClass}">${label}</span><span class="id">№ ${esc(item.id)}</span></div><h2 class="title">${esc(title)}</h2><div class="size">${esc(size)}</div><div class="details">${details.map((x) => `<span class="detail">${esc(x)}</span>`).join("")}</div><div class="bottom"><span class="price">${esc(item.price || "Цена по запросу")}</span><a class="open" href="/tire?id=${encodeURIComponent(item.id)}">Подробнее →</a></div></article>`;
+
+    const key = `${item.type}:${item.id}`;
+    const isNew = !shownIds.has(key);
+    shownIds.add(key);
+    const style = isNew ? ` style="--i:${index % 12}"` : "";
+    const cardClass = isNew ? "card" : "card is-seen";
+
+    return `<article class="${cardClass}"${style}><div class="top"><span class="tag ${tagClass}">${label}</span><span class="id">№ ${esc(item.id)}</span></div><h2 class="title">${esc(title)}</h2><div class="size">${esc(size)}</div><div class="details">${details.map((x) => `<span class="detail">${esc(x)}</span>`).join("")}</div><div class="bottom"><span class="price">${esc(item.price || "Цена по запросу")}</span><a class="open" href="/tire?id=${encodeURIComponent(item.id)}">Подробнее →</a></div></article>`;
   }
 
   function render() {
@@ -169,11 +179,23 @@
     itemsNode.setAttribute("aria-busy", String(busy));
     countNode.textContent = total > loaded.length ? `Показано ${loaded.length} из ${total}`
       : `${total} ${total === 1 ? "товар" : "товаров"}`;
+
+    const hasItems = loaded.length > 0;
+    itemsNode.classList.toggle("has-items", hasItems);
+
     if (!loaded.length && !busy) {
+      itemsNode.classList.remove("has-items");
       itemsNode.innerHTML = '<div class="empty">Ничего не найдено. Измените запрос или выберите другой сезон.</div>';
       return;
     }
-    itemsNode.innerHTML = loaded.map(itemCard).join("") +
+
+    // Скелетон показуємо окремим блоком, поки немає жодного товару.
+    if (!hasItems) {
+      itemsNode.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+      return;
+    }
+
+    itemsNode.innerHTML = loaded.map((item, index) => itemCard(item, index)).join("") +
       (busy ? '<div class="loading" id="page-loading">Загружаем следующие товары…</div>' : "") +
       (nextOffset !== null ? (autoPaused
         ? '<button class="filter" id="retry-next" style="grid-column:1/-1;margin:8px auto">Повторить загрузку</button>'
@@ -243,7 +265,9 @@
     nextOffset = null;
     autoPaused = false;
     busy = true;
+    shownIds.clear();
     itemsNode.setAttribute("aria-busy", "true");
+    itemsNode.classList.remove("has-items");
     const cached = readCachedPage(cacheKey(0, priorities));
     if (cached) applyPage(0, cached);
     else {

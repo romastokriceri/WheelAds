@@ -30,6 +30,15 @@
   .photo-placeholder { position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted);font-size:13px; }
   .photo-placeholder svg { opacity:.3; }
 
+  /* ── Карусель фото ── */
+  .slides { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; height:100%; scrollbar-width:none; }
+  .slides::-webkit-scrollbar { display:none; }
+  .slide { flex:0 0 100%; height:100%; scroll-snap-align:start; }
+  .slide img { width:100%; height:100%; object-fit:cover; display:block; }
+  .dots { position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:6px; pointer-events:none; }
+  .dot { width:6px; height:6px; border-radius:3px; background:rgba(255,255,255,.4); transition:width .2s, background .2s; }
+  .dot.active { background:var(--accent); width:16px; }
+
   /* Status */
   .status-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
   .badge { font-size:11px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green);border:1px solid color-mix(in srgb,var(--green) 30%,transparent); }
@@ -428,6 +437,40 @@ function renderFitment(container, results) {
   }
 }
 
+// ── Карусель фото ────────────────────────────────────────────────────────────
+function renderPhotos(photos) {
+  const wrap = $("photo-wrap");
+  wrap.querySelectorAll(".slides, .dots").forEach(n => n.remove());
+  $("photo-placeholder").style.display = photos.length ? "none" : "";
+  if (!photos.length) return;
+
+  const slides = document.createElement("div");
+  slides.className = "slides";
+  photos.forEach((src, i) => {
+    const s = document.createElement("div");
+    s.className = "slide";
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = `Фото ${i + 1}`;
+    img.loading = i === 0 ? "eager" : "lazy";
+    img.onload = () => img.classList.add("loaded");
+    s.appendChild(img);
+    slides.appendChild(s);
+  });
+  wrap.appendChild(slides);
+
+  if (photos.length > 1) {
+    const dots = document.createElement("div");
+    dots.className = "dots";
+    dots.innerHTML = photos.map((_, i) => `<span class="dot${i ? "" : " active"}"></span>`).join("");
+    wrap.appendChild(dots);
+    slides.addEventListener("scroll", () => {
+      const i = Math.round(slides.scrollLeft / slides.clientWidth);
+      dots.querySelectorAll(".dot").forEach((d, j) => d.classList.toggle("active", j === i));
+    }, { passive: true });
+  }
+}
+
 // ── Завантаження даних ────────────────────────────────────────────────────────
 async function load() {
   // ✅ PATCH: читаємо ID з хеш-фрагмента (#0054) або з query (?id=0054)
@@ -466,13 +509,8 @@ async function load() {
 function render(data) {
   const { type, id, photo, tire, felgen, isAdmin } = data;
 
-  if (photo) {
-    const img = document.createElement("img");
-    img.src = photo; img.alt = "Фото";
-    img.onload = () => img.classList.add("loaded");
-    $("photo-placeholder").style.display = "none";
-    $("photo-wrap").appendChild(img);
-  }
+  // ✅ PATCH: карусель — повний масив photos, або fallback на одне photo
+  renderPhotos(data.photos?.length ? data.photos : (photo ? [photo] : []));
 
   const status = tire?.status || felgen?.status || "Доступно";
   const sold   = /прода|sold/i.test(status);
