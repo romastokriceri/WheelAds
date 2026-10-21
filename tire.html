@@ -31,13 +31,23 @@
   .photo-placeholder svg { opacity:.3; }
 
   /* ── Карусель фото ── */
-  .slides { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; height:100%; scrollbar-width:none; }
+  .slides { position:absolute; inset:0; display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .slides::-webkit-scrollbar { display:none; }
   .slide { flex:0 0 100%; height:100%; scroll-snap-align:start; }
   .slide img { width:100%; height:100%; object-fit:cover; display:block; }
   .dots { position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:6px; pointer-events:none; }
   .dot { width:6px; height:6px; border-radius:3px; background:rgba(255,255,255,.4); transition:width .2s, background .2s; }
   .dot.active { background:var(--accent); width:16px; }
+  .nav { position:absolute; top:50%; transform:translateY(-50%); width:36px; height:36px; border-radius:50%; padding:0;
+    border:1px solid rgba(255,255,255,.28); background:rgba(13,13,13,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2;
+    -webkit-tap-highlight-color:transparent; transition:background .2s; }
+  .nav:hover { background:rgba(13,13,13,.85); }
+  .nav:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .nav[hidden] { display:none; }
+  .nav svg { width:16px; height:16px; }
+  .nav.prev { left:10px; } .nav.prev svg { transform:scaleX(-1); }
+  .nav.next { right:10px; }
 
   /* Status */
   .status-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
@@ -309,6 +319,7 @@ const typeLabel    = { reifen:"Шини", felgen:"Диски", komplettraeder:"�
 let currentData = null;
 let tgApp       = null;
 let BOT_USERNAME = BOT_USERNAME_FALLBACK;
+let MINI_APP     = ""; // short name Mini App з BotFather, якщо не Main App
 
 // ── Утиліти ──────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -332,6 +343,7 @@ function loadTelegramSDK() {
     const s = document.createElement("script");
     s.src = "https://telegram.org/js/telegram-web-app.js";
     s.onload = resolve;
+    s.onerror = resolve;
     document.head.appendChild(s);
   });
 }
@@ -440,7 +452,7 @@ function renderFitment(container, results) {
 // ── Карусель фото ────────────────────────────────────────────────────────────
 function renderPhotos(photos) {
   const wrap = $("photo-wrap");
-  wrap.querySelectorAll(".slides, .dots").forEach(n => n.remove());
+  wrap.querySelectorAll(".slides, .dots, .nav").forEach(n => n.remove());
   $("photo-placeholder").style.display = photos.length ? "none" : "";
   if (!photos.length) return;
 
@@ -464,29 +476,57 @@ function renderPhotos(photos) {
     dots.className = "dots";
     dots.innerHTML = photos.map((_, i) => `<span class="dot${i ? "" : " active"}"></span>`).join("");
     wrap.appendChild(dots);
+
+    const chevron = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+    const mk = (cls, label) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = `nav ${cls}`;
+      b.setAttribute("aria-label", label); b.innerHTML = chevron;
+      return b;
+    };
+    const prev = mk("prev", "Попереднє фото");
+    const next = mk("next", "Наступне фото");
+    prev.hidden = true;
+    prev.addEventListener("click", () => slides.scrollBy({ left: -slides.clientWidth, behavior: "smooth" }));
+    next.addEventListener("click", () => slides.scrollBy({ left:  slides.clientWidth, behavior: "smooth" }));
+    wrap.append(prev, next);
+
     slides.addEventListener("scroll", () => {
-      const i = Math.round(slides.scrollLeft / slides.clientWidth);
+      const w = slides.clientWidth || 1;
+      const i = Math.round(slides.scrollLeft / w);
       dots.querySelectorAll(".dot").forEach((d, j) => d.classList.toggle("active", j === i));
+      prev.hidden = i <= 0;
+      next.hidden = i >= photos.length - 1;
     }, { passive: true });
   }
 }
 
 // ── Завантаження даних ────────────────────────────────────────────────────────
-async function load() {
-  // ✅ PATCH: читаємо ID з хеш-фрагмента (#0054) або з query (?id=0054)
-  const params = new URLSearchParams(location.search);
-  const rawId  = location.hash.replace("#", "").trim()
-              || params.get("id") || params.get("tire_id") || "";
-  if (!rawId) { show("state-error"); $("error-msg").textContent="ID не вказано."; return; }
+function getRawId() {
+  const sp = tgApp?.initDataUnsafe?.start_param;
+  if (sp) return sp;
+  const q = new URLSearchParams(location.search);
+  const fromQuery = q.get("id") || q.get("tire_id") || q.get("tgWebAppStartParam");
+  if (fromQuery) return fromQuery;
+  const h = location.hash.replace("#", "").trim();
+  if (/^\w{1,8}$/.test(h)) return h;                       // #0142
+  return new URLSearchParams(h).get("tgWebAppStartParam") || "";
+}
 
+async function load() {
+  // SDK першим: у Telegram хеш містить tgWebAppData, ID лежить у start_param
   await loadTelegramSDK();
   tgApp = window.Telegram?.WebApp || null;
   if (tgApp) tgApp.ready();
 
+  const rawId = getRawId();
+  if (!rawId) { show("state-error"); $("error-msg").textContent = "ID не вказано."; return; }
+
   // ✅ PATCH: отримуємо username бота з /api/config
   try {
     const cfg = await fetch("/api/config").then(r => r.ok ? r.json() : null).catch(() => null);
-    if (cfg?.botUsername) BOT_USERNAME = cfg.botUsername;
+    if (cfg?.botUsername) BOT_USERNAME = String(cfg.botUsername).replace(/^@/, "");
+    if (cfg?.miniApp) MINI_APP = String(cfg.miniApp).replace(/^\//, "");
   } catch (_) { /* fallback */ }
 
   const initData = tgApp?.initData || "";
@@ -533,7 +573,10 @@ function render(data) {
     if (sz) { setText("tire-size", sz); showEl("tire-size"); }
   } else {
     setText("tire-name", [tire?.marke, tire?.modell].filter(Boolean).join(" ") || "Шина");
-    if (tire?.grosse) { setText("tire-size", tire.grosse); showEl("tire-size"); }
+    let sz = tire?.grosse || "";
+    const z = String(tire?.zoll || tire?.radius || tire?.felge || "").match(/\d{2}/)?.[0];
+    if (sz && z && !/R\s*\d{2}/i.test(sz)) sz += ` R${z}`;
+    if (sz) { setText("tire-size", sz); showEl("tire-size"); }
   }
 
   setText("price", tire?.preis || felgen?.preis || "—");
@@ -593,7 +636,11 @@ function render(data) {
 // ── Кнопка «Відкрити в Telegram» ─────────────────────────────────────────────
 function showTelegramButton(id) {
   const btn = $("tg-open-btn");
-  btn.href = `https://t.me/${BOT_USERNAME}?startapp=${String(id).padStart(4,"0")}`;
+  // Плейсхолдер = бот не налаштований: краще сховати кнопку, ніж відкривати пошук Telegram
+  if (!BOT_USERNAME || BOT_USERNAME === BOT_USERNAME_FALLBACK) { console.warn("BOT_USERNAME не задано (/api/config)"); return; }
+  const pid  = String(id).padStart(4, "0");
+  const path = MINI_APP ? `${BOT_USERNAME}/${MINI_APP}` : BOT_USERNAME;
+  btn.href = `https://t.me/${path}?startapp=${pid}`;
   showEl("tg-open-btn");
 }
 
